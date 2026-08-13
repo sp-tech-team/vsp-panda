@@ -82,8 +82,8 @@ def phone_numbers_match(
 
     return normalized_stored == normalized_input
 
-def parse_departure_date(value: Any) -> date | None:
-    """Convert a Google Sheets dd/MM/yyyy value to a date."""
+def parse_date(value: Any) -> date | None:
+    """Convert a Google Sheets date value to a date."""
     if value is None:
         return None
 
@@ -97,7 +97,7 @@ def parse_departure_date(value: Any) -> date | None:
     if not value:
         return None
 
-    return datetime.strptime(value, "%d-%m-%Y").date() # ** Need to move to settings
+    return datetime.strptime(value, "%m/%d/%Y").date() # ** Need to move to settings
 
 def get_country_code_map():
     """Generate country code list (Without Flags)"""

@@ -1,16 +1,16 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from typing import Any
 
 import gspread
 import streamlit as st
 
-from entities import CategoryMaster, SubCategoryMaster, SubCategoryMaster, TeamMaster, Volunteer
+from entities import *
 from utils import (
     normalize_email,
     normalize_phone_number,
-    parse_departure_date,
+    parse_date,
     phone_numbers_match,
 )
 
@@ -56,6 +56,25 @@ SUB_CATEGORY_MASTER_HEADERS = (
     "Volunteer Category",
     "Help Text",
 )
+
+PROGRAM_MASTER_HEADERS = (
+    "Program ID",
+    "Program Name",
+    "Program Code",
+    "Applicable Gender",
+    "Is Active",
+    "Load Program Dates",
+    "Restriction Details",
+    "Help Text",
+)
+
+PROGRAM_DATE_HEADERS = (
+    "Program Date ID",
+    "Program ID",
+    "Start Date",
+    "End Date",
+    "Status",
+    "Slots Count",)
 
 #endregion Google Sheets headers
 
@@ -114,6 +133,14 @@ def _validate_headers(headers: list[str], worksheet: str) -> None:
         missing_headers = [
             header for header in SUB_CATEGORY_MASTER_HEADERS if header not in headers
         ]
+    elif worksheet == "Program Master":
+        missing_headers = [
+            header for header in PROGRAM_MASTER_HEADERS if header not in headers
+        ]
+    elif worksheet == "Program Dates":
+        missing_headers = [
+            header for header in PROGRAM_DATE_HEADERS if header not in headers
+        ]
     # ** Need to add more as worksheets are added
 
     if missing_headers:
@@ -130,9 +157,7 @@ def _validate_headers(headers: list[str], worksheet: str) -> None:
 
 # region Mapping Google Sheets rows to entities
 
-def _row_to_volunteer(
-    row: dict[str, Any],
-) -> Volunteer:
+def _row_to_volunteer(row: dict[str, Any]) -> Volunteer:
     """Convert a Google Sheets row into a Volunteer entity."""
 
     return Volunteer(
@@ -148,14 +173,10 @@ def _row_to_volunteer(
             row.get("Volunteer Category", "")
         ).strip(),
         seva_name = str(row.get("Seva Name", "")).strip(),
-        departure_date = parse_departure_date(
-            row.get("Departure Date")
-        ),
+        departure_date = parse_date(row.get("Departure Date")),
     )
 
-def _row_to_team_master(
-    row: dict[str, Any],
-) -> TeamMaster:
+def _row_to_team_master(row: dict[str, Any]) -> TeamMaster:
     """Convert a Google Sheets row into a TeamMaster entity."""
 
     return TeamMaster(
@@ -165,9 +186,7 @@ def _row_to_team_master(
         contact_email = str(row.get("Contact Email", "")).strip(),
     )
 
-def _row_to_category_master(
-    row: dict[str, Any],
-) -> CategoryMaster:
+def _row_to_category_master(row: dict[str, Any]) -> CategoryMaster:
     """Convert a Google Sheets row into a CategoryMaster entity."""
 
     return CategoryMaster(
@@ -177,9 +196,7 @@ def _row_to_category_master(
         is_active = str(row.get("Is Active", "")).strip().lower() == "true",
     )
 
-def _row_to_subcategory_master(
-    row: dict[str, Any],
-) -> SubCategoryMaster:
+def _row_to_subcategory_master(row: dict[str, Any]) -> SubCategoryMaster:
     """Convert a Google Sheets row into a SubCategoryMaster entity."""
 
     return SubCategoryMaster(
@@ -196,6 +213,32 @@ def _row_to_subcategory_master(
         category = None,  # This will be populated later when linking to CategoryMaster
     )       
 
+def _row_to_program_master(row: dict[str, Any]) -> ProgramMaster:
+    """Convert a Google Sheets row into a ProgramMaster entity."""
+
+    return ProgramMaster(
+        program_id = int(row.get("Program ID", 0)),
+        program_name = str(row.get("Program Name", "")).strip(),
+        program_code = str(row.get("Program Code", "")).strip(),
+        applicable_gender = str(row.get("Applicable Gender", "")).strip(),
+        is_active = str(row.get("Is Active", "")).strip().lower() == "true",
+        load_program_dates = str(row.get("Load Program Dates", "")).strip().lower() == "true",
+        restriction_details = str(row.get("Restriction Details", "")).strip(),
+        help_text = str(row.get("Help Text", "")).strip(),
+    )
+
+def _row_to_program_dates(row: dict[str, Any]) -> ProgramDates:
+    """Convert a Google Sheets row into a ProgramDates entity."""
+
+    return ProgramDates(
+        program_date_id = int(row.get("Program Date ID", '0')),
+        program_id = int(row.get("Program ID", '0')),
+        start_date = parse_date(row.get("Start Date")),
+        end_date = parse_date(row.get("End Date")),
+        status = row.get("Status", "").strip(),
+        slots_count = int(str(row.get("Slots Count", 0)).strip() or 0)
+    )
+
 # endregion Mapping Google Sheets rows to entities
 
 
@@ -206,7 +249,7 @@ def _row_to_subcategory_master(
 
 # region Load data from Google Sheets into entities
 
-@st.cache_data(ttl=300, show_spinner=False)
+@st.cache_data(ttl=10, show_spinner=False)
 def load_volunteers() -> tuple[Volunteer, ...]:
     """
     Load Volunteer records from Google Sheets.
@@ -238,7 +281,7 @@ def load_volunteers() -> tuple[Volunteer, ...]:
 
     return tuple(volunteers)
 
-@st.cache_data(ttl=300, show_spinner=False)
+@st.cache_data(ttl=10, show_spinner=False)
 def load_teams() -> tuple[TeamMaster, ...]:
     """
     Load Team Master records from Google Sheets.=
@@ -267,7 +310,7 @@ def load_teams() -> tuple[TeamMaster, ...]:
 
     return tuple(teams)
 
-@st.cache_data(ttl=300, show_spinner=False)
+@st.cache_data(ttl=10, show_spinner=False)
 def load_categories() -> tuple[CategoryMaster, ...]:
     """
     Load Category Master records from Google Sheets.
@@ -296,7 +339,7 @@ def load_categories() -> tuple[CategoryMaster, ...]:
 
     return tuple(categories)
 
-@st.cache_data(ttl=300, show_spinner=False)
+@st.cache_data(ttl=10, show_spinner=False)
 def load_subcategories() -> tuple[SubCategoryMaster, ...]:
     """
     Load SubCategory Master records from Google Sheets.
@@ -324,6 +367,65 @@ def load_subcategories() -> tuple[SubCategoryMaster, ...]:
         subcategories.append(_row_to_subcategory_master(row))
 
     return tuple(subcategories)
+
+@st.cache_data(ttl=10, show_spinner=False)
+def load_programs() -> tuple[ProgramMaster, ...]:
+    """
+    Load Program Master records from Google Sheets.
+    """
+    
+    sheet = get_google_sheet()
+    worksheet = sheet.worksheet("Program Master") # ** Need to check if this is working
+    values = worksheet.get_all_values()
+
+    if not values:
+        return ()
+
+    headers = [str(header).strip() for header in values[0]]
+    _validate_headers(headers, "Program Master") # ** Need to check if this is working
+
+    programs: list[ProgramMaster] = []
+
+    for raw_row in values[1:]: # !! Don't know what this padded_row is doing
+        padded_row = raw_row + [""] * max( 
+            0,
+            len(headers) - len(raw_row),
+        )
+
+        row = dict(zip(headers, padded_row))
+        programs.append(_row_to_program_master(row))
+
+    return tuple(programs)
+
+@st.cache_data(ttl=10, show_spinner=False)
+def load_program_dates() -> tuple[ProgramDates, ...]:
+    """
+    Load Program Dates records from Google Sheets.
+    """
+    
+    sheet = get_google_sheet()
+    worksheet = sheet.worksheet("Program Dates") # ** Need to check if this is working
+    values = worksheet.get_all_values()
+
+    if not values:
+        return ()
+
+    headers = [str(header).strip() for header in values[0]]
+    _validate_headers(headers, "Program Dates") # ** Need to check if this is working
+
+    programs: list[ProgramDates] = []
+
+    for raw_row in values[1:]: # !! Don't know what this padded_row is doing
+        padded_row = raw_row + [""] * max( 
+            0,
+            len(headers) - len(raw_row),
+        )
+
+        row = dict(zip(headers, padded_row))
+        programs.append(_row_to_program_dates(row))
+
+    return tuple(programs)
+
 
 # endregion Load data from Google Sheets into entities
 
@@ -486,7 +588,7 @@ class SubCategoryRepository:
 
         return None
 
-    def get_by_category_id(self, category_id: int) -> tuple[SubCategoryMaster, ...]:
+    def get_by_category_id_for_vol_cat(self, category_id: int, volunteer_category: str) -> tuple[SubCategoryMaster, ...]:
         """Return all SubCategoryMaster records matching a category ID."""
 
         active_subcategories = self.get_active_subcategories()
@@ -494,25 +596,8 @@ class SubCategoryRepository:
         matches = [
             subcategory
             for subcategory in active_subcategories
-            if subcategory.category_id == category_id
-        ]
-
-        return tuple(matches)
-
-    def get_by_volunteer_category(self, volunteer_category: str) -> tuple[SubCategoryMaster, ...]:
-        """Return all SubCategoryMaster records matching a volunteer category."""
-
-        normalized_volunteer_category = str(volunteer_category).strip()
-
-        if not normalized_volunteer_category:
-            return ()
-
-        active_subcategories = self.get_active_subcategories()
-
-        matches = [
-            subcategory
-            for subcategory in active_subcategories
-            if str(subcategory.volunteer_category).strip() == normalized_volunteer_category
+            if subcategory.category_id == category_id and 
+                subcategory.volunteer_category == volunteer_category
         ]
 
         return tuple(matches)
@@ -524,5 +609,64 @@ class SubCategoryRepository:
             for subcategory in self._subcategories
             if subcategory.is_active
         )
+
+class ProgramRepository:
+    """Read-only repository for Program Master records."""
+
+    def __init__(self, programs: tuple[ProgramMaster, ...] | None = None, 
+                    program_dates: tuple[ProgramDates, ...] | None = None) -> None:
+        self._programs = (
+            load_programs()
+            if programs is None
+            else programs 
+        )
+
+        self._program_dates = (
+            load_program_dates()
+            if program_dates is None
+            else program_dates 
+        )
+
+    def get_by_id(self, program_id: int) -> ProgramMaster | None:
+        """Return the ProgramMaster record matching a program ID."""
+
+        for program in self._programs:
+            if program.program_id == program_id:
+                return program
+
+        return None
+
+    def get_active_programs_for_gender(self, gender: str) -> tuple[ProgramMaster, ...]:
+        """Return all active ProgramMaster records for a specific gender."""
+        return tuple(
+            program
+            for program in self._programs
+            if program.is_active and (program.applicable_gender == "Both" or program.applicable_gender == gender)
+        )
+
+    def get_active_program_dates(self, program_id: int) -> tuple[ProgramDates, ...]:
+        """Return all program dates for a specific program ID."""
+
+        return tuple(
+            program_date
+            for program_date in self._program_dates 
+            if program_date.status == "Active" and program_date.program_id == program_id
+        )
+        
+
+    def get_program_dates_in_range(self, program_id: int, departure_date: datetime.date) -> tuple[datetime.date, ...]:
+        """
+        Return all program dates for a specific program ID that are on or after the departure date.
+        """
+        # Assuming you have a method to get all program dates for a specific program ID
+        active_program_dates = self.get_active_program_dates(program_id)
+
+        filtered_dates = [
+            program_date
+            for program_date in active_program_dates
+            if program_date.start_date < departure_date and program_date.end_date < departure_date
+        ]
+
+        return tuple(filtered_dates)
 
 #endregion Repository classes

@@ -70,12 +70,15 @@ class ProgramMaster:
 
     program_id: int
     program_name: str
+    program_code: str
     applicable_gender: str
     is_active: bool
+    load_program_dates: bool
     restriction_details: str
+    help_text: str
 
     def __str__(self) -> str:
-        return self.program_name
+        return f'{self.program_name} ({self.program_code})'
 
 @dataclass
 class ProgramToTeamMapping:
@@ -100,11 +103,12 @@ class ProgramDates:
     start_date: date
     end_date: date
     status: str
+    slots_count: int
 
     program: ProgramMaster | None = None
 
     def __str__(self) -> str:
-        return f"{self.program.program_name} | {self.start_date} - {self.end_date}"
+        return f"{self.start_date.strftime("%b %d, %Y")} - {self.end_date.strftime("%b %d, %Y")}"
 
 @dataclass
 class Requests:
