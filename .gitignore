@@ -1,0 +1,23 @@
+# Virtual environment
+.venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Secrets
+service_account.json
+.env
+.streamlit/secrets.toml
+
+# Streamlit
+.streamlit/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
