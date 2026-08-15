@@ -9,7 +9,7 @@ class Volunteer:
     """Represents a volunteer record from the Volunteer Google Sheet."""
 
     visit_id: str
-    person_id: int
+    person_id: str # !! Need to ask SH about datafield
     volunteer_id: str
     name: str
     gender: str
@@ -24,7 +24,7 @@ class Volunteer:
         return f"{self.name} | <{self.email_id}> | <{self.phone_number}>"
     
 @dataclass
-class TeamMaster:
+class Team:
     """Represents a team record from the Team Master Google Sheet."""
 
     team_id: str
@@ -36,49 +36,55 @@ class TeamMaster:
         return f"{self.team_id} - {self.name}"
 
 @dataclass
-class CategoryMaster:
+class Category:
     """Represents a category record from the Category Master Google Sheet."""
 
-    category_id: int
+    category_id: str
     category: str
     has_programs: bool
     is_active: bool
+    display_order: int
 
     def __str__(self) -> str:
         return self.category
 
 @dataclass
-class SubCategoryMaster:
+class SubCategory:
     """Represents a sub-category record from the Sub-Category Master Google Sheet."""
 
-    sub_category_id: int
-    category_id: int
+    sub_category_id: str
+    category_id: str
     name: str
     is_active: bool
     team_id: str
     volunteer_category: str
     help_text: str
-
-    category: CategoryMaster | None = None
+    show_from_date_input: bool
+    show_to_date_input: bool
+    show_coordinator_email_input: bool
+    display_order: int
 
     def __str__(self) -> str:
-        return f"{self.name} | {self.category.category}"
+        return self.name
 
 @dataclass
-class ProgramMaster:
+class Program:
     """Represents a program record from the Program Master Google Sheet."""
 
-    program_id: int
+    program_id: str
     program_name: str
-    program_code: str
     applicable_gender: str
+    category_id: int
     is_active: bool
-    load_program_dates: bool
+    show_from_date_input: bool
+    show_to_date_input: bool
+    show_coordinator_email_input: bool
     restriction_details: str
     help_text: str
+    duration_in_days: int
 
     def __str__(self) -> str:
-        return f'{self.program_name} ({self.program_code})'
+        return self.program_name
 
 @dataclass
 class ProgramToTeamMapping:
@@ -88,8 +94,8 @@ class ProgramToTeamMapping:
     volunteer_category: str
     team_id: str
 
-    program: ProgramMaster | None = None
-    team: TeamMaster | None = None
+    program: Program | None = None
+    team: Team | None = None
 
     def __str__(self) -> str:
         return f"{self.program.program_name} - {self.team.name}"
@@ -103,15 +109,13 @@ class ProgramDates:
     start_date: date
     end_date: date
     status: str
-    slots_count: int
-
-    program: ProgramMaster | None = None
+    slots_count: int | 0
 
     def __str__(self) -> str:
         return f"{self.start_date.strftime("%b %d, %Y")} - {self.end_date.strftime("%b %d, %Y")}"
 
 @dataclass
-class Requests:
+class Request:
     """Represents a request record from the Requests Google Sheet."""
 
     request_id: str
@@ -128,19 +132,19 @@ class Requests:
     to_date: date
     description: str
     timestamp: datetime
-    request_status: str
-    team_comments: str
-    closed_by: str 
-    assigned_department: str
-    reassigned_by: str
-    status: str
-    status_sub_type: str
-    last_edited: datetime
-    system_id: str
-    closed_on: date | None = None
-    from_date_processed: date | None = None
-    to_date_processed: date | None = None
-    timestamp_processed: date | None = None
+    request_status: str # ?? what to set
+    team_comments: str # not from streamlit
+    closed_by: str # not from streamlit
+    assigned_department: str 
+    reassigned_by: str # not from streamlit
+    status: str 
+    status_sub_type: str 
+    last_edited: datetime 
+    system_id: str # ?? what to set
+    closed_on: date | None = None # not from streamlit
+    from_date_processed: date | None = None # not from streamlit
+    to_date_processed: date | None = None # not from streamlit
+    timestamp_processed: date | None = None # not from streamlit
 
     def __str__(self) -> str:
         return f"{self.request_id} - {self.request_type} | {self.name} <{self.email_id}> <{self.phone_number}>"
@@ -149,7 +153,7 @@ class Requests:
 class Log:
     """Represents a log record from the Logs Google Sheet."""
 
-    log_id: int
+    log_id: str
     ip_address: str
     email_id: str
     phone_number: str
@@ -164,7 +168,7 @@ class Log:
 class Setting:
     """Represents a setting record from the Settings Google Sheet."""
 
-    setting_id: int
+    setting_id: str
     name: str
     description: str
     value: str
