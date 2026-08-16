@@ -74,7 +74,7 @@ class Program:
     program_id: str
     program_name: str
     applicable_gender: str
-    category_id: int
+    category_id: str
     is_active: bool
     show_from_date_input: bool
     show_to_date_input: bool
@@ -90,22 +90,17 @@ class Program:
 class ProgramToTeamMapping:
     """Represents a mapping between a program and a team from the Program to Team Mapping Google Sheet."""
 
-    program_id: int
+    program_team_map_id: str
+    program_id: str
     volunteer_category: str
     team_id: str
-
-    program: Program | None = None
-    team: Team | None = None
-
-    def __str__(self) -> str:
-        return f"{self.program.program_name} - {self.team.name}"
 
 @dataclass
 class ProgramDates:
     """Represents the dates for a program from the Program Dates Google Sheet."""
 
-    program_date_id: int
-    program_id: int
+    program_date_id: str
+    program_id: str
     start_date: date
     end_date: date
     status: str
@@ -119,7 +114,7 @@ class Request:
     """Represents a request record from the Requests Google Sheet."""
 
     request_id: str
-    person_id: int
+    person_id: int # ?? data type
     visit_id: str
     name: str
     gender: str
@@ -132,16 +127,20 @@ class Request:
     to_date: date
     description: str
     timestamp: datetime
-    request_status: str # ?? what to set
-    team_comments: str # not from streamlit
-    closed_by: str # not from streamlit
     assigned_department: str 
-    reassigned_by: str # not from streamlit
     status: str 
-    status_sub_type: str 
+    status_sub_type: str # leave empty initially
     last_edited: datetime 
-    system_id: str # ?? what to set
+
+    program_date_id: str | None = None # Optional
+    coordinator_email_id: str | None = None # Optional
+
+    request_status: str | None = None # not to be used
+    team_comments: str | None = None # not from streamlit
     closed_on: date | None = None # not from streamlit
+    closed_by: str | None = None # not from streamlit
+    reassigned_by: str | None = None # not from streamlit
+    system_id: str | None = None # not to be used
     from_date_processed: date | None = None # not from streamlit
     to_date_processed: date | None = None # not from streamlit
     timestamp_processed: date | None = None # not from streamlit
@@ -175,3 +174,24 @@ class Setting:
 
     def __str__(self) -> str:
         return f"{self.name} | {self.value}"
+
+@dataclass
+class VolunteerCategory:
+    """Represents a volunteer category record from the Requests Google Sheet."""
+
+    volunteer_category_id: str
+    name: str
+    request_label: str
+
+    def __str__(self) -> str:
+        return f"{self.volunteer_category_id} - {self.name}"
+
+@dataclass
+class CountryCode:
+    """Represents the country code entity. This entity doesn't exists in Google Sheet."""
+
+    region: str
+    country_code: int
+
+    def __str__(self) -> str:
+        return f"{self.region} (+{self.country_code})"

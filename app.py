@@ -6,7 +6,7 @@ import utils
 import re
 
 from entities import Program, Request
-from repository import CategoryRepository, ProgramRepository, RequestRepository, SubCategoryRepository, TeamRepository, VolunteerRepository
+from repository import CategoryRepository, ProgramRepository, RequestRepository, SubCategoryRepository, TeamRepository, VolunteerCategoryRepository, VolunteerRepository
 
 volunteer_repository = VolunteerRepository()
 team_repository = TeamRepository()
@@ -14,6 +14,7 @@ category_repository = CategoryRepository()
 subcategory_repository = SubCategoryRepository()
 program_repository = ProgramRepository()
 request_repository = RequestRepository()
+vol_cat_repository = VolunteerCategoryRepository()
 
 if "state" not in st.session_state:
     st.session_state["state"] = "Identification"
@@ -22,9 +23,9 @@ elif "volunteer_identified" in st.session_state and st.session_state["volunteer_
 
     # These fields are requried for validating the form
     # Initializing the states, actual values would be put while the fields are rendered
-    st.session_state["is_sub_cat_selection"] = False
+    st.session_state["is_sub_cat_req"] = False
     st.session_state["is_program_selection"] = False
-    st.session_state["is_program_date_selection"] = False
+    st.session_state["is_program_date_req"] = False
     st.session_state["is_coordinator_email_req"] = False
 
 def show_volunteer_email_identification() -> None:
@@ -61,12 +62,18 @@ def show_forgot_email_button() -> None:
 
 def show_volunteer_phone_identification() -> None:
     """Render the phone identification flow."""
-    country_code_map = utils.get_country_code_map()
+    country_codes = utils.get_country_code_map()
+    default_country_code_index = next(
+                                        (
+                                            index
+                                            for index, cc in enumerate(country_codes)
+                                            if cc.region == "IN"
+                                        ),
+                                        None,
+                                    )
 
-    input_country = st.selectbox("🌍 Select Country Code", 
-        list(country_code_map.keys()), 
-        index=list(country_code_map.keys()).index("IN (+91)"))
-    input_country_code = country_code_map[input_country]
+    input_country = st.selectbox("🌍 Select Country Code", country_codes, index=default_country_code_index)
+    input_country_code = input_country.country_code
 
     phone_number = st.text_input(
         "📞 Phone Number",
@@ -78,11 +85,9 @@ def show_volunteer_phone_identification() -> None:
             st.error("Phone number is required.")
             return
 
-        full_phone_number = f"{input_country_code}{phone_number.strip()}"
+        full_phone_number = f"+{input_country_code}{phone_number.strip()}"
 
-        volunteer = volunteer_repository.get_latest_by_phone(
-            full_phone_number,
-        )
+        volunteer = volunteer_repository.get_latest_by_phone(full_phone_number, input_country.region)
 
         if volunteer is None:
             st.error("❌ Phone number does not exist in the database.")
@@ -152,7 +157,7 @@ def show_subcategory_selection() -> None:
 
     # This field is used for form validation. 
     # I am assuming that if this function will be called only when sub category is required.
-    st.session_state["is_sub_cat_selection"] = True
+    st.session_state["is_sub_cat_req"] = True
     
     input_category = st.session_state.get("input_category")
     if not input_category:
@@ -190,7 +195,7 @@ def show_program_selection() -> None:
 
     # This field is used for form validation. 
     # I am assuming that if this function will be called only when program is required.
-    st.session_state["is_program_selection"] = True
+    st.session_state["is_program_req"] = True
     
     input_category = st.session_state.get("input_category")
     if not input_category:
@@ -228,7 +233,7 @@ def show_program_dates_selection() -> None:
 
     # This field is used for form validation. 
     # I am assuming that if this function will be called only when program date is required.
-    st.session_state["is_program_date_selection"] = True
+    st.session_state["is_program_date_req"] = True
 
     # Assuming you have a method to get program dates based on the selected program
     program_dates = program_repository.get_program_dates_in_range(
@@ -379,7 +384,7 @@ def show_submit_button():
     if not all(validation_results):
         return
 
-    # save_record()
+    save_record()
 
 def show_help_text(help_text: str) -> None:
     """Render the help text."""
@@ -405,74 +410,95 @@ def validate_required(value: Any, error_message: str) -> bool:
 
     return True
 
-# def save_record():
-#     volunteer = st.session_state["volunteer"]
-#     category = st.session_state["input_category"]
-#     subcategory = st.session_state.get("input_subcategory", None)
-#     program = st.session_state.get("input_program", None)
+def save_record():
+    volunteer = st.session_state["volunteer"]
+    vol_cat = vol_cat_repository.get_by_id(volunteer.volunteer_category)
+                                           
+    category = st.session_state["input_category"]
+    subcategory = st.session_state.get("input_subcategory", None)
+    program = st.session_state.get("input_program", None)
 
-#     from_date = None
-#     to_date = None
-#     coordinator_email = None
-#     team = None
+    from_date = None
+    to_date = None
+    program_date = None
+    coordinator_email = None
+    team_id = None
 
-#     # from-to date assignment && coordinator assignment
-#     is_program_date_req = st.session_state.get("is_program_date_req", False)
-#     if is_program_date_req:
-#         program_date = st.session_state["input_program_date"]
-#         from_date, to_date = program_date.start_date, program_date.end_date
+    # from-to date assignment && coordinator assignment
+    is_program_date_req = st.session_state.get("is_program_date_req", False)
+    if is_program_date_req:
+        program_date = st.session_state["input_program_date"]
+        from_date, to_date = program_date.start_date, program_date.end_date
 
-#     if subcategory is not None:
-#         if subcategory.show_from_date_input:
-#             from_date = st.session_state["input_from_date"]
-#         if subcategory.show_to_date_input:
-#             to_date = st.session_state["input_to_date"]
-#         if subcategory.show_coordinator_email_input:
-#             coordinator_email = st.session_state["input_coordinator_email"]
+    if subcategory is not None:
+        if subcategory.show_from_date_input:
+            from_date = st.session_state["input_from_date"]
+        if subcategory.show_to_date_input:
+            to_date = st.session_state["input_to_date"]
+        if subcategory.show_coordinator_email_input:
+            coordinator_email = st.session_state["input_coordinator_email"]
 
-#         team = subcategory.team_id
+        team_id = subcategory.team_id
 
-#     if program is not None:
-#         if program.show_from_date_input:
-#             from_date = st.session_state["input_from_date"]
-#         if program.show_to_date_input:
-#             to_date = st.session_state["input_to_date"]
-#         if program.show_coordinator_email_input:
-#             coordinator_email = st.session_state["input_coordinator_email"]
+    if program is not None:
+        if program.show_from_date_input:
+            from_date = st.session_state["input_from_date"]
+        if program.show_to_date_input:
+            to_date = st.session_state["input_to_date"]
+        if program.show_coordinator_email_input:
+            coordinator_email = st.session_state["input_coordinator_email"]
 
-#     description = st.session_state["input_description"]
-#     if coordinator_email and not coordinator_email.isspace():
-#         description += f"\nSeva Coordinator Mail ID: {coordinator_email}"
+        team_map = program_repository.get_assigned_team(program.program_id, volunteer.volunteer_category)
+        team_id = team_map.team_id
 
-#     # team assignment
+    description = st.session_state["input_description"]
+    if coordinator_email and not coordinator_email.isspace():
+        description += f"\nSeva Coordinator Mail ID: {coordinator_email}"
 
-#     req = Request(
-#         request_id = ,
-#         person_id = volunteer.person_id,
-#         visit_id = volunteer.visit_id,
-#         name = volunteer.name,
-#         gender = volunteer.gender,
-#         email_id = volunteer.email_id,
-#         phone_number = volunteer.phone_number,
-#         volunteer_category = volunteer.volunteer_category, # !! Need to ask if the code or full label should go here
-#         request_type = category.category,
-#         sub_category = subcategory.name if subcategory != None else program.program_name,
-#         from_date = from_date,
-#         to_date = to_date,
-#         description = description,
-#         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-#         request_status = "New",
-#         assigned_department = 
-#         system_id = 
-        
-#     )
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    existing_request_ids = request_repository.get_existing_ids()
+    req = Request(
+        request_id = utils.generate_request_id(vol_cat.request_label, existing_request_ids),
+        person_id = volunteer.person_id,
+        visit_id = volunteer.visit_id,
+        name = volunteer.name,
+        gender = volunteer.gender,
+        email_id = volunteer.email_id,
+        phone_number = volunteer.phone_number,
+        volunteer_category = volunteer.volunteer_category, # !! Need to ask if the code or full label should go here
+        request_type = category.category,
+        sub_category = subcategory.name if subcategory != None else program.program_name,
+        from_date = from_date,
+        to_date = to_date,
+        description = description,
+        timestamp = timestamp,
+        assigned_department = team_id,
+        status = utils.get_setting("defaultRequestStatus"),
+        status_sub_type = utils.get_setting("defaultRequestStatusSubType"), # to be left empty initially
+        last_edited = timestamp,
 
-#     request_repository.write_to_sheet(req)
+        program_date_id = program_date.program_date_id if program_date is not None else None,
+        coordinator_email_id = coordinator_email
+    )
+
+    request_repository.write_to_sheet(req)
+
+def reset_req_flags():
+    """
+    Resets required flag, which are being used by validate method to be determine what is required.
+    """
+
+    st.session_state.pop("is_sub_cat_req", None)
+    st.session_state.pop("is_program_req", None)
+    st.session_state.pop("is_program_date_req", None)
+    st.session_state.pop("is_coordinator_email_req", None)
 
 
 
 if __name__ == "__main__":
     st.title("🔹 Raise a Request")
+
+    reset_req_flags()
 
     if st.session_state.get("state") == "Identification":
         show_volunteer_email_identification()
@@ -494,6 +520,8 @@ if __name__ == "__main__":
                 else:
                     show_subcategory_selection()
 
+            # need to add custom_date fieldls and coordinator email_input for subcategory
+
             input_program = st.session_state.get("input_program")
             if input_program != None:
                 if (not input_program.show_from_date_input and 
@@ -507,12 +535,3 @@ if __name__ == "__main__":
 
             show_description_box()
             show_submit_button()
-                
-
-
-    
-        
-
-    
-
-    

@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 from datetime import date, datetime
+import random
+import string
 from typing import Any
 
 import phonenumbers
 from phonenumbers import NumberParseException
+
+from entities import CountryCode
 
 
 def normalize_email(email: str | None) -> str | None:
@@ -15,10 +19,7 @@ def normalize_email(email: str | None) -> str | None:
     normalized = email.strip().casefold()
     return normalized or None
 
-def normalize_phone_number(
-    phone_number: str | None,
-    region: str = "IN",
-) -> str | None:
+def normalize_phone_number(phone_number: str | None, region: str = "IN") -> str | None:
     """
     Normalize a phone number to E.164.
 
@@ -99,16 +100,104 @@ def parse_date(value: Any) -> date | None:
 
     return datetime.strptime(value, "%m/%d/%Y").date() # ** Need to move to settings
 
-def get_country_code_map():
+def get_country_code_map() -> list[CountryCode]:
     """Generate country code list (Without Flags)"""
 
-    country_code_map = {}
+    country_codes: list[CountryCode] = []
 
     for cc in sorted(phonenumbers.COUNTRY_CODE_TO_REGION_CODE.keys()):
         regions = phonenumbers.COUNTRY_CODE_TO_REGION_CODE[cc]
         if regions:
-            region = regions[0]  # Use the first region if multiple exist
-            key = f"{region} (+{cc})"
-            country_code_map[key] = str(cc)
+            country_codes.append(CountryCode(
+                region = regions[0], # Use the first region if multiple exist
+                country_code = cc
+            ))
 
-    return country_code_map
+    return country_codes
+
+def generate_request_id(vol_cat_code: str, existing_requests: list[str]):
+    full_prefix = f"REQ-{vol_cat_code}"
+
+    existing_numbers = sorted([
+        int(request_id.replace(full_prefix, "")) for request_id in existing_requests 
+        if request_id.startswith(full_prefix) and request_id.replace(full_prefix, "").isdigit()
+    ])
+
+    next_number = 1
+    for num in existing_numbers:
+        if num == next_number:
+            next_number += 1
+        else:
+            break
+
+    if next_number > 99999:
+        for _ in range(10000):
+            random_alnum = ''.join(random.choices(string.ascii_uppercase + string.digits, k=5))
+            request_id = f"{full_prefix}{random_alnum}"
+            if request_id not in existing_requests:
+                return request_id
+        return f"{full_prefix}XXXXX"
+
+    request_id = f"{full_prefix}{next_number:05d}"
+    return request_id
+
+# region read appsettings.json
+
+import json
+from functools import lru_cache
+from pathlib import Path
+from typing import Any
+
+APP_SETTINGS_FILE = Path(__file__).resolve().parent / "appsettings.json"
+
+
+@lru_cache(maxsize=1)
+def _load_settings() -> dict[str, Any]:
+    """Load and cache application settings from appsettings.json."""
+
+    if not APP_SETTINGS_FILE.exists():
+        raise FileNotFoundError(
+            f"Application settings file not found: {APP_SETTINGS_FILE}"
+        )
+
+    try:
+        with APP_SETTINGS_FILE.open("r", encoding="utf-8") as file:
+            settings = json.load(file)
+    except json.JSONDecodeError as exc:
+        raise ValueError(
+            f"Invalid JSON in {APP_SETTINGS_FILE}: {exc}"
+        ) from exc
+
+    if not isinstance(settings, dict):
+        raise ValueError(
+            f"Expected {APP_SETTINGS_FILE} to contain a JSON object."
+        )
+
+    return settings
+
+
+def get_setting(key: str, default: Any = None) -> Any:
+    """Get a setting from appsettings.json.
+
+    Supports both top-level and nested keys using dot notation.
+    """
+
+    if not key.strip():
+        raise ValueError("Setting key cannot be empty.")
+
+    value: Any = _load_settings()
+
+    for part in key.split("."):
+        if not isinstance(value, dict) or part not in value:
+            if default is not None:
+                return default
+
+            raise KeyError(
+                f"Setting '{key}' was not found in {APP_SETTINGS_FILE}"
+            )
+
+        value = value[part]
+
+    return value
+
+# endregion

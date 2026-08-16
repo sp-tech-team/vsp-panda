@@ -82,7 +82,7 @@ PROGRAM_DATE_HEADERS = (
     "Start Date",
     "End Date",
     "Status",
-    "Slots Count",
+    "Total Slots",
 )
 
 REQUEST_HEADERS = (
@@ -114,6 +114,13 @@ REQUEST_HEADERS = (
     "Timestamp_processed",
     "System_ID",
     "Program Date ID",
+    "Coordinator Email ID",
+)
+
+VALIDATION_CATEGORIES_HEADERS = (
+    "Volunteer Category ID",
+    "Name",
+    "Request Label"
 )
 
 #endregion Google Sheets headers
@@ -181,6 +188,14 @@ def _validate_headers(headers: list[str], worksheet: str) -> None:
         missing_headers = [
             header for header in PROGRAM_DATE_HEADERS if header not in headers
         ]
+    elif worksheet == "Requests":
+        missing_headers = [
+            header for header in REQUEST_HEADERS if header not in headers
+        ]
+    elif worksheet == "Validation Categories":
+        missing_headers = [
+            header for header in VALIDATION_CATEGORIES_HEADERS if header not in headers
+        ]
     # ** Need to add more as worksheets are added
 
     if missing_headers:
@@ -230,7 +245,7 @@ def _row_to_category_master(row: dict[str, Any]) -> Category:
     """Convert a Google Sheets row into a Category entity."""
 
     return Category(
-        category_id = int(row.get("Category ID", 0)),
+        category_id = str(row.get("Category ID", 0)),
         category = str(row.get("Category", "")).strip(),
         has_programs = str(row.get("Has Programs", "")).strip().lower() == "true",
         is_active = str(row.get("Is Active", "")).strip().lower() == "true",
@@ -241,8 +256,8 @@ def _row_to_subcategory_master(row: dict[str, Any]) -> SubCategory:
     """Convert a Google Sheets row into a Sub Category entity."""
 
     return SubCategory(
-        sub_category_id = int(row.get("Sub Category ID", 0)),
-        category_id = int(row.get("Category ID", 0)),
+        sub_category_id = str(row.get("Sub Category ID", 0)),
+        category_id = str(row.get("Category ID", 0)),
         name = str(row.get("Name", "")).strip(),
         is_active = str(row.get("Is Active", "")).strip().lower() == "true",
         team_id = str(row.get("Team ID", "")).strip(),
@@ -258,10 +273,10 @@ def _row_to_program_master(row: dict[str, Any]) -> Program:
     """Convert a Google Sheets row into a Program entity."""
 
     return Program(
-        program_id = int(row.get("Program ID", 0)),
+        program_id = str(row.get("Program ID", 0)),
         program_name = str(row.get("Program Name", "")).strip(),
         applicable_gender = str(row.get("Applicable Gender", "")).strip(),
-        category_id = int(row.get("Category ID", 0)),
+        category_id = str(row.get("Category ID", 0)),
         is_active = str(row.get("Is Active", "")).strip().lower() == "true",
         show_from_date_input = str(row.get("User Input From Date", "")).strip().lower() == "true",
         show_to_date_input = str(row.get("User Input To Date", "")).strip().lower() == "true",
@@ -275,12 +290,31 @@ def _row_to_program_dates(row: dict[str, Any]) -> ProgramDates:
     """Convert a Google Sheets row into a ProgramDates entity."""
 
     return ProgramDates(
-        program_date_id = int(row.get("Program Date ID", '0')),
-        program_id = int(row.get("Program ID", '0')),
+        program_date_id = str(row.get("Program Date ID", '0')),
+        program_id = str(row.get("Program ID", '0')),
         start_date = parse_date(row.get("Start Date")),
         end_date = parse_date(row.get("End Date")),
         status = row.get("Status", "").strip(),
-        slots_count = int(str(row.get("Slots Count", 0)).strip() or 0)
+        slots_count = int(str(row.get("Total Slots", 0)).strip() or 0)
+    )
+
+def _row_to_program_team_mapping(row: dict[str, Any]) -> ProgramToTeamMapping:
+    """Convert a Google Sheets row into a ProgramToTeamMapping entity."""
+    
+    return ProgramToTeamMapping(
+        program_team_map_id = str(row.get("Program Team Map ID", "")),
+        program_id = str(row.get("Program ID", "")),
+        volunteer_category = str(row.get("Volunteer Category", "")),
+        team_id = str(row.get("Team ID", ""))
+    )
+
+def _row_to_volunteer_category(row: dict[str, Any]) -> VolunteerCategory:
+    """Convert a Google Sheets row into a VolunteerCategory entity."""
+
+    return VolunteerCategory(
+        volunteer_category_id = str(row.get("Volunteer Category ID", "")),
+        name = str(row.get("Name", "")),
+        request_label = str(row.get("Request Label", ""))
     )
 
 # endregion Mapping Google Sheets rows to entities
@@ -293,7 +327,7 @@ def _row_to_program_dates(row: dict[str, Any]) -> ProgramDates:
 
 # region Load data from Google Sheets into entities
 
-@st.cache_data(ttl=300, show_spinner=False)
+@st.cache_data(ttl=60 * 10, show_spinner=False)
 def load_volunteers() -> tuple[Volunteer, ...]:
     """
     Load Volunteer records from Google Sheets.
@@ -325,7 +359,7 @@ def load_volunteers() -> tuple[Volunteer, ...]:
 
     return tuple(volunteers)
 
-@st.cache_data(ttl=300, show_spinner=False)
+@st.cache_data(ttl=60 * 30, show_spinner=False)
 def load_teams() -> tuple[Team, ...]:
     """
     Load Team Master records from Google Sheets.
@@ -354,7 +388,7 @@ def load_teams() -> tuple[Team, ...]:
 
     return tuple(teams)
 
-@st.cache_data(ttl=300, show_spinner=False)
+@st.cache_data(ttl=60 * 30, show_spinner=False)
 def load_categories() -> list[Category]:
     """
     Load Category records from Google Sheets.
@@ -385,7 +419,7 @@ def load_categories() -> list[Category]:
 
     return categories
 
-@st.cache_data(ttl=300, show_spinner=False)
+@st.cache_data(ttl=60 * 30, show_spinner=False)
 def load_subcategories() -> tuple[SubCategory, ...]:
     """
     Load Sub Category records from Google Sheets.
@@ -414,7 +448,7 @@ def load_subcategories() -> tuple[SubCategory, ...]:
 
     return tuple(subcategories)
 
-@st.cache_data(ttl=300, show_spinner=False)
+@st.cache_data(ttl=60 * 30, show_spinner=False)
 def load_programs() -> tuple[Program, ...]:
     """
     Load Program records from Google Sheets.
@@ -443,7 +477,7 @@ def load_programs() -> tuple[Program, ...]:
 
     return tuple(programs)
 
-@st.cache_data(ttl=300, show_spinner=False)
+@st.cache_data(ttl=60 * 30, show_spinner=False)
 def load_program_dates() -> tuple[ProgramDates, ...]:
     """
     Load Program Dates records from Google Sheets.
@@ -471,6 +505,94 @@ def load_program_dates() -> tuple[ProgramDates, ...]:
         programs.append(_row_to_program_dates(row))
 
     return tuple(programs)
+
+@st.cache_data(ttl=60 * 30, show_spinner=False)
+def load_program_team_mapping() -> tuple[ProgramToTeamMapping, ...]:
+    """
+    Load Program Team Mapping records from Google Sheets.
+    """
+    
+    sheet = get_google_sheet()
+    worksheet = sheet.worksheet("Program To Team Mapping") # ** Need to check if this is working
+    values = worksheet.get_all_values()
+
+    if not values:
+        return ()
+
+    headers = [str(header).strip() for header in values[0]]
+    _validate_headers(headers, "Program To Team Mapping") # ** Need to check if this is working
+
+    mapping: list[ProgramToTeamMapping] = []
+
+    for raw_row in values[1:]: # !! Don't know what this padded_row is doing
+        padded_row = raw_row + [""] * max( 
+            0,
+            len(headers) - len(raw_row),
+        )
+
+        row = dict(zip(headers, padded_row))
+        mapping.append(_row_to_program_team_mapping(row))
+
+    return tuple(mapping)
+
+@st.cache_data(ttl=60 * 30, show_spinner=False)
+def load_volunteer_categories() -> tuple[VolunteerCategory, ...]:
+    """
+    Load Volunteer Category records from Google Sheets.
+    """
+    
+    sheet = get_google_sheet()
+    worksheet = sheet.worksheet("Volunteer Categories") # ** Need to check if this is working
+    values = worksheet.get_all_values()
+
+    if not values:
+        return ()
+
+    headers = [str(header).strip() for header in values[0]]
+    _validate_headers(headers, "Volunteer Categories") # ** Need to check if this is working
+
+    volunteer_categories: list[VolunteerCategory] = []
+
+    for raw_row in values[1:]: # !! Don't know what this padded_row is doing
+        padded_row = raw_row + [""] * max( 
+            0,
+            len(headers) - len(raw_row),
+        )
+
+        row = dict(zip(headers, padded_row))
+        volunteer_categories.append(_row_to_volunteer_category(row))
+
+    return tuple(volunteer_categories)
+
+@st.cache_data(ttl=60 * 30, show_spinner=False)
+def load_request_ids() -> tuple[str, ...]:
+    """
+    Load Request IDs from Request records from Google Sheets.
+    """
+    
+    sheet = get_google_sheet()
+    worksheet = sheet.worksheet("Requests") # ** Need to check if this is working
+    values = worksheet.get_all_values()
+
+    if not values:
+        return ()
+
+    headers = [str(header).strip() for header in values[0]]
+    _validate_headers(headers, "Requests") # ** Need to check if this is working
+
+    request_ids: list[str] = []
+
+    for raw_row in values[1:]: # !! Don't know what this padded_row is doing
+        padded_row = raw_row + [""] * max( 
+            0,
+            len(headers) - len(raw_row),
+        )
+
+        row = dict(zip(headers, padded_row))
+        request_ids.append(str(row.get("Request ID", "")))
+
+    return tuple(request_ids)
+    
 
 # endregion Load data from Google Sheets into entities
 
@@ -539,9 +661,9 @@ class VolunteerRepository:
 
         return _select_latest_volunteer_record(matches)
 
-    def get_latest_by_phone(self, phone_number: str) -> Volunteer | None:
+    def get_latest_by_phone(self, phone_number: str, region: str = "IN") -> Volunteer | None:
         """Return the latest Volunteer record matching a phone number."""
-        normalized_input = normalize_phone_number(phone_number)
+        normalized_input = normalize_phone_number(phone_number, region)
 
         if normalized_input is None:
             return None
@@ -659,7 +781,8 @@ class ProgramRepository:
     """Read-only repository for Program records."""
 
     def __init__(self, programs: tuple[Program, ...] | None = None, 
-                    program_dates: tuple[ProgramDates, ...] | None = None) -> None:
+                    program_dates: tuple[ProgramDates, ...] | None = None,
+                    program_team_map: tuple[ProgramToTeamMapping, ...] | None = None) -> None:
         self._programs = (
             load_programs()
             if programs is None
@@ -670,6 +793,12 @@ class ProgramRepository:
             load_program_dates()
             if program_dates is None
             else program_dates 
+        )
+
+        self._program_team_map = (
+            load_program_team_mapping()
+            if program_team_map is None
+            else program_team_map
         )
 
     def get_by_id(self, program_id: int) -> Program | None:
@@ -699,7 +828,6 @@ class ProgramRepository:
             if program_date.status == "Active" and program_date.program_id == program_id
         )
         
-
     def get_program_dates_in_range(self, program_id: int, departure_date: datetime.date) -> tuple[datetime.date, ...]:
         """
         Return all program dates for a specific program ID that are on or after the departure date.
@@ -715,20 +843,36 @@ class ProgramRepository:
 
         return tuple(filtered_dates)
 
-    def get_assigned_team(self, vol_cat: str) -> str:
+    def get_assigned_team(self, program_id: str, vol_cat: str) -> ProgramToTeamMapping:
         """
         Return the mapped team to program and volunteer category.
         """
 
+        filtered_map = [
+            team_map
+            for team_map in self._program_team_map
+            if team_map.program_id == program_id
+        ]
 
+        for team_map in filtered_map:
+            if team_map.volunteer_category == vol_cat:
+                return team_map
 
+        return None
 
 class RequestRepository:
-    def __init__(self) -> None:
+    def __init__(self, existing_ids: list[str] | None = None) -> None:
         sheet = get_google_sheet()
         self._worksheet = sheet.worksheet("Requests")
+        self._existing_ids = (
+            load_request_ids()
+            if existing_ids is None
+            else existing_ids
+        )
 
-
+    def get_existing_ids(self) -> list[str]:
+        return self._existing_ids
+    
     @staticmethod
     def _format_value(value: Any) -> Any:
         """Convert Python values into values suitable for Google Sheets."""
@@ -789,4 +933,30 @@ class RequestRepository:
             insert_data_option="INSERT_ROWS",
         )
 
+class VolunteerCategoryRepository:
+    """Read-only repository for VolunteerCategory records."""
+    
+    def __init__(self, categories: tuple[VolunteerCategory, ...] | None = None) -> None:
+        self._volunteer_categories = (
+            load_volunteer_categories()
+            if categories is None
+            else categories 
+        )
+
+    def get_by_id(self, category_id: str) -> VolunteerCategory | None:
+        """Return the VolunteerCategory record matching a volunteer category ID."""
+        for vol_cat in self._volunteer_categories:
+            if vol_cat.volunteer_category_id == category_id:
+                return vol_cat
+
+        return None
+
+    def get_by_name(self, category_name: str) -> VolunteerCategory | None:
+        """Return the VolunteerCategory record matching a volunteer category."""
+        for vol_cat in self._volunteer_categories:
+            if vol_cat.name == category_name:
+                return vol_cat
+
+        return None
+    
 #endregion Repository classes
