@@ -267,17 +267,14 @@ def show_custom_date_fields(program: Program) -> None:
 
     with col1:
         if program.show_from_date_input:
+            st.session_state["is_from_date_req"] = True
             from_date = st.date_input("📅 From Date", format="DD/MM/YYYY")
-            to_date_value = from_date + timedelta(days = program.duration_in_days)
+            to_date_value = from_date + timedelta(days = program.duration_in_days if program.duration_in_days > 0 else 1)
 
     with (col1 if not program.show_from_date_input else col2): # both columns should be used only when both date fields need to be shown
         if program.show_to_date_input:
+            st.session_state["is_to_date_req"] = True
             to_date = st.date_input("📅 To Date", value = to_date_value, format="DD/MM/YYYY")
-
-    if from_date and to_date:
-        if from_date > to_date:
-            st.error("From Date cannot be later than To Date.")
-            return
 
     if from_date:
         st.session_state["input_from_date"] = from_date
@@ -366,6 +363,30 @@ def show_submit_button():
                 st.session_state.get("input_program_date", None), 
                 "⚠️ Please select a Program Date.")
         )
+
+    is_from_date_req = st.session_state.get("is_from_date_req", False)
+    if is_from_date_req:
+        validation_results.append(
+            validate_required(
+                st.session_state.get("input_from_date", None), 
+                "⚠️ Please select the From Date.")
+        )
+
+    is_to_date_req = st.session_state.get("is_to_date_req", False)
+    if is_to_date_req:
+        validation_results.append(
+            validate_required(
+                st.session_state.get("input_to_date", None), 
+                "⚠️ Please select the To Date.")
+        )
+
+    from_date = st.session_state.get("input_from_date", None)
+    to_date = st.session_state.get("input_to_date", None)
+
+    if from_date and to_date:
+        if from_date >= to_date:
+            st.error("From Date cannot be later than To Date.")
+            validation_results.append(False)
 
     is_coordinator_email_req = st.session_state.get("is_coordinator_email_req", False)
     if is_coordinator_email_req:
@@ -491,6 +512,8 @@ def reset_req_flags():
     st.session_state.pop("is_sub_cat_req", None)
     st.session_state.pop("is_program_req", None)
     st.session_state.pop("is_program_date_req", None)
+    st.session_state.pop("is_from_date_req", None)
+    st.session_state.pop("is_to_date_req", None)
     st.session_state.pop("is_coordinator_email_req", None)
 
 
@@ -520,7 +543,12 @@ if __name__ == "__main__":
                 else:
                     show_subcategory_selection()
 
-            # need to add custom_date fieldls and coordinator email_input for subcategory
+            input_subcategory = st.session_state.get("input_subcategory")
+            if input_subcategory != None:
+                show_custom_date_fields(input_subcategory)
+
+                if input_subcategory.show_coordinator_email_input:
+                    show_coordinator_email_input()
 
             input_program = st.session_state.get("input_program")
             if input_program != None:

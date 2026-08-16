@@ -63,6 +63,7 @@ class SubCategory:
     show_to_date_input: bool
     show_coordinator_email_input: bool
     display_order: int
+    duration_in_days: int
 
     def __str__(self) -> str:
         return self.name

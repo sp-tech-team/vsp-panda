@@ -59,7 +59,8 @@ SUB_CATEGORY_MASTER_HEADERS = (
     "User Input From Date",
     "User Input To Date",
     "Show Coordinator Email",
-    "Display Order"
+    "Display Order",
+    "Duration in Days"
 )
 
 PROGRAM_HEADERS = (
@@ -266,7 +267,8 @@ def _row_to_subcategory_master(row: dict[str, Any]) -> SubCategory:
         show_from_date_input = str(row.get("User Input From Date", "")).strip().lower() == "true",
         show_to_date_input = str(row.get("User Input To Date", "")).strip().lower() == "true",
         show_coordinator_email_input = str(row.get("Show Coordinator Email", "")).strip().lower() == "true",
-        display_order = int(str(row.get("Display Order", 0)).strip() or 0)
+        display_order = int(str(row.get("Display Order", 0)).strip() or 0),
+        duration_in_days = int(str(row.get("Duration in Days", 0)).strip() or 0)
     )       
 
 def _row_to_program_master(row: dict[str, Any]) -> Program:
@@ -564,7 +566,6 @@ def load_volunteer_categories() -> tuple[VolunteerCategory, ...]:
 
     return tuple(volunteer_categories)
 
-@st.cache_data(ttl=60 * 30, show_spinner=False)
 def load_request_ids() -> tuple[str, ...]:
     """
     Load Request IDs from Request records from Google Sheets.
@@ -861,17 +862,12 @@ class ProgramRepository:
         return None
 
 class RequestRepository:
-    def __init__(self, existing_ids: list[str] | None = None) -> None:
+    def __init__(self) -> None:
         sheet = get_google_sheet()
         self._worksheet = sheet.worksheet("Requests")
-        self._existing_ids = (
-            load_request_ids()
-            if existing_ids is None
-            else existing_ids
-        )
 
     def get_existing_ids(self) -> list[str]:
-        return self._existing_ids
+        return load_request_ids()
     
     @staticmethod
     def _format_value(value: Any) -> Any:
@@ -919,6 +915,8 @@ class RequestRepository:
             self._format_value(request.to_date_processed),
             self._format_value(request.timestamp_processed),
             self._format_value(request.system_id),
+            self._format_value(request.program_date_id),
+            self._format_value(request.coordinator_email_id),
             "",  # Program Date ID - not present in Request
         ]
 
