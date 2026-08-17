@@ -64,6 +64,8 @@ class SubCategory:
     show_coordinator_email_input: bool
     display_order: int
     duration_in_days: int
+    dynamic_dropdown_fields: list[str]
+    dynamic_textbox_fields: list[str]
 
     def __str__(self) -> str:
         return self.name

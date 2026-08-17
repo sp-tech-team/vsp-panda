@@ -186,6 +186,9 @@ def show_subcategory_selection() -> None:
 
     st.session_state.pop("input_subcategory", None)
 
+# def render_dynamic_dropdowns() -> None:
+#     if "dynamic_dropdown"
+
 def show_program_selection() -> None:
     """Render the program selection flow."""
     volunteer = st.session_state.get("volunteer")

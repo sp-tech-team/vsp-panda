@@ -60,7 +60,9 @@ SUB_CATEGORY_MASTER_HEADERS = (
     "User Input To Date",
     "Show Coordinator Email",
     "Display Order",
-    "Duration in Days"
+    "Duration in Days",
+    "Dynamic Dropdown Fields",
+    "Dynamic Textbox Fields"
 )
 
 PROGRAM_HEADERS = (
@@ -256,6 +258,9 @@ def _row_to_category_master(row: dict[str, Any]) -> Category:
 def _row_to_subcategory_master(row: dict[str, Any]) -> SubCategory:
     """Convert a Google Sheets row into a Sub Category entity."""
 
+    dynamic_dropdown_fields = [ item.strip() for item in str(row.get("Dynamic Dropdown Fields")).split(",") ]
+    dynamic_textbox_fields = [ item.strip() for item in str(row.get("Dynamic Textbox Fields")).split(",") ]
+
     return SubCategory(
         sub_category_id = str(row.get("Sub Category ID", 0)),
         category_id = str(row.get("Category ID", 0)),
@@ -268,7 +273,9 @@ def _row_to_subcategory_master(row: dict[str, Any]) -> SubCategory:
         show_to_date_input = str(row.get("User Input To Date", "")).strip().lower() == "true",
         show_coordinator_email_input = str(row.get("Show Coordinator Email", "")).strip().lower() == "true",
         display_order = int(str(row.get("Display Order", 0)).strip() or 0),
-        duration_in_days = int(str(row.get("Duration in Days", 0)).strip() or 0)
+        duration_in_days = int(str(row.get("Duration in Days", 0)).strip() or 0),
+        dynamic_dropdown_fields = dynamic_dropdown_fields,
+        dynamic_textbox_fields = dynamic_textbox_fields
     )       
 
 def _row_to_program_master(row: dict[str, Any]) -> Program:
@@ -422,7 +429,7 @@ def load_categories() -> list[Category]:
     return categories
 
 @st.cache_data(ttl=60 * 30, show_spinner=False)
-def load_subcategories() -> tuple[SubCategory, ...]:
+def load_subcategories() -> list[SubCategory]:
     """
     Load Sub Category records from Google Sheets.
     """
@@ -448,7 +455,9 @@ def load_subcategories() -> tuple[SubCategory, ...]:
         row = dict(zip(headers, padded_row))
         subcategories.append(_row_to_subcategory_master(row))
 
-    return tuple(subcategories)
+    subcategories = sorted(subcategories, key = lambda sub_cat : sub_cat.display_order)
+
+    return subcategories
 
 @st.cache_data(ttl=60 * 30, show_spinner=False)
 def load_programs() -> tuple[Program, ...]:
