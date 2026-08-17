@@ -5,16 +5,17 @@ import streamlit as st
 import utils
 import re
 
-from entities import Program, Request
-from repository import CategoryRepository, ProgramRepository, RequestRepository, SubCategoryRepository, TeamRepository, VolunteerCategoryRepository, VolunteerRepository
+from entities import Program, Request, SubCategory
+from repository import CategoryRepository, ParameterRepository, ProgramRepository, RequestRepository, SubCategoryRepository, TeamRepository, VolunteerCategoryRepository, VolunteerRepository
 
-volunteer_repository = VolunteerRepository()
-team_repository = TeamRepository()
 category_repository = CategoryRepository()
-subcategory_repository = SubCategoryRepository()
+parameter_repository = ParameterRepository()
 program_repository = ProgramRepository()
 request_repository = RequestRepository()
+subcategory_repository = SubCategoryRepository()
+team_repository = TeamRepository()
 vol_cat_repository = VolunteerCategoryRepository()
+volunteer_repository = VolunteerRepository()
 
 if "state" not in st.session_state:
     st.session_state["state"] = "Identification"
@@ -186,8 +187,47 @@ def show_subcategory_selection() -> None:
 
     st.session_state.pop("input_subcategory", None)
 
-# def render_dynamic_dropdowns() -> None:
-#     if "dynamic_dropdown"
+def render_dynamic_dropdowns(sub_cat: SubCategory) -> None:
+    dynamic_dropdowns = []
+    for index, field_name in enumerate(sub_cat.dynamic_dropdown_fields):
+        dynamic_dropdowns.append({
+            "name": field_name,
+            "is_req": True,
+            "key_name": f"ddl_{index}"
+        })
+
+    st.session_state["dynamic_dropdowns"] = dynamic_dropdowns
+
+    col1, col2 = st.columns(2)
+
+    cur_col = col1
+    for field in dynamic_dropdowns:
+        with cur_col:
+            option_values = parameter_repository.get_by_key(field["name"])
+
+            st.selectbox(field["name"], option_values, index = None, key = field["key_name"])
+
+            cur_col = col1 if cur_col != col1 else col2
+
+def render_dynamic_textbox(sub_cat: SubCategory) -> None:
+    dynamic_textbox = []
+    for index, field_name in enumerate(sub_cat.dynamic_textbox_fields):
+        dynamic_textbox.append({
+            "name": field_name,
+            "is_req": True,
+            "key_name": f"tb_{index}"
+        })
+
+    st.session_state["dynamic_textbox"] = dynamic_textbox
+
+    col1, col2 = st.columns(2)
+
+    cur_col = col1
+    for field in dynamic_textbox:
+        with cur_col:
+            st.text_input(field["name"], placeholder=field["name"], key = field["key_name"])
+
+            cur_col = col1 if cur_col != col1 else col2
 
 def show_program_selection() -> None:
     """Render the program selection flow."""
@@ -351,6 +391,29 @@ def show_submit_button():
                 "⚠️ Please select a Sub Category.")
         )
 
+    dynamic_dropdowns = st.session_state.get("dynamic_dropdowns", None)
+    if dynamic_dropdowns:
+        for field in dynamic_dropdowns:
+            if field["is_req"]:
+                validation_results.append(
+                    validate_required(
+                        st.session_state.get(field["key_name"], ""),
+                        f"⚠️ '{field["name"]}' is required."
+                    )
+                )
+
+
+    dynamic_textbox = st.session_state.get("dynamic_textbox", None)
+    if dynamic_textbox:
+        for field in dynamic_textbox:
+            if field["is_req"]:
+                validation_results.append(
+                    validate_required(
+                        st.session_state.get(field["key_name"], ""),
+                        f"⚠️ '{field["name"]}' is required."
+                    )
+                )
+
     is_program_req = st.session_state.get("is_program_req", False)
     if is_program_req:
         validation_results.append(
@@ -475,7 +538,23 @@ def save_record():
         team_map = program_repository.get_assigned_team(program.program_id, volunteer.volunteer_category)
         team_id = team_map.team_id
 
+    # Prepare description
+
     description = st.session_state["input_description"]
+
+    dynamic_dropdowns = st.session_state.get("dynamic_dropdowns", None)
+    if dynamic_dropdowns:
+        for field in dynamic_dropdowns:
+            value = st.session_state[field["key_name"]]
+            description += f"\n{field["name"]}: {value}"
+    
+
+    dynamic_textbox = st.session_state.get("dynamic_textbox", None)
+    if dynamic_textbox:
+        for field in dynamic_textbox:
+            value = st.session_state[field["key_name"]]
+            description += f"\n{field["name"]}: {value}"
+
     if coordinator_email and not coordinator_email.isspace():
         description += f"\nSeva Coordinator Mail ID: {coordinator_email}"
 
@@ -521,6 +600,10 @@ def reset_req_flags():
 
 
 
+
+
+
+
 if __name__ == "__main__":
     st.title("🔹 Raise a Request")
 
@@ -548,6 +631,8 @@ if __name__ == "__main__":
 
             input_subcategory = st.session_state.get("input_subcategory")
             if input_subcategory != None:
+                render_dynamic_dropdowns(input_subcategory)
+                render_dynamic_textbox(input_subcategory)
                 show_custom_date_fields(input_subcategory)
 
                 if input_subcategory.show_coordinator_email_input:

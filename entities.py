@@ -106,7 +106,7 @@ class ProgramDates:
     program_id: str
     start_date: date
     end_date: date
-    status: str
+    is_active: bool
     slots_count: int | 0
 
     def __str__(self) -> str:
@@ -137,16 +137,10 @@ class Request:
 
     program_date_id: str | None = None # Optional
     coordinator_email_id: str | None = None # Optional
-
-    request_status: str | None = None # not to be used
     team_comments: str | None = None # not from streamlit
     closed_on: date | None = None # not from streamlit
     closed_by: str | None = None # not from streamlit
     reassigned_by: str | None = None # not from streamlit
-    system_id: str | None = None # not to be used
-    from_date_processed: date | None = None # not from streamlit
-    to_date_processed: date | None = None # not from streamlit
-    timestamp_processed: date | None = None # not from streamlit
 
     def __str__(self) -> str:
         return f"{self.request_id} - {self.request_type} | {self.name} <{self.email_id}> <{self.phone_number}>"
@@ -188,6 +182,17 @@ class VolunteerCategory:
 
     def __str__(self) -> str:
         return f"{self.volunteer_category_id} - {self.name}"
+
+@dataclass
+class Parameter:
+    """Represents the parameter entity."""
+    
+    parameter_id: str
+    parameter_name: str
+    parameter_value: str
+
+    def __str__(self) -> str:
+        return f"{self.parameter_name} - {self.parameter_value}"
 
 @dataclass
 class CountryCode:
