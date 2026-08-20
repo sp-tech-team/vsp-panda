@@ -112,16 +112,16 @@ REQUESTS_HEADER = (
     "To Date",
     "Description",
     "Timestamp",
-    "Team Comments",
-    "Closed On",
-    "Closed By",
     "Assigned Department",
-    "Reassigned by",
+    "Program Date ID",
+    "Coordinator Email ID",
     "Status",
     "Status Subtype",
     "LastEdited",
-    "Program Date ID",
-    "Coordinator Email ID",
+    "Team Comments",
+    "Closed By",
+    "Closed On",
+    "Reassigned by",
 )
 
 VALIDATION_CATEGORIES_HEADER = (
