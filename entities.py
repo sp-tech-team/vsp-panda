@@ -66,6 +66,7 @@ class SubCategory:
     duration_in_days: int
     dynamic_dropdown_fields: list[str]
     dynamic_textbox_fields: list[str]
+    secondary_email: str
 
     def __str__(self) -> str:
         return self.name
@@ -126,6 +127,7 @@ class Request:
     volunteer_category: str
     request_type: str # represents the category of the request
     sub_category: str
+    sub_category_id: str
     from_date: date
     to_date: date
     description: str
@@ -170,7 +172,7 @@ class Setting:
     value: str
 
     def __str__(self) -> str:
-        return f"{self.name} | {self.value}"
+        return f"{self.name} = {self.value}"
 
 @dataclass
 class VolunteerCategory:

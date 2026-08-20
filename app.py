@@ -1,21 +1,27 @@
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
+from pathlib import Path
 from typing import Any
 
 import streamlit as st
+import threading
 import utils
 import re
 
 from entities import Program, Request, SubCategory
-from repository import CategoryRepository, ParameterRepository, ProgramRepository, RequestRepository, SubCategoryRepository, TeamRepository, VolunteerCategoryRepository, VolunteerRepository
+from repository import CategoryRepository, ParameterRepository, ProgramRepository, RequestRepository, SettingRepository, SubCategoryRepository, TeamRepository, VolunteerCategoryRepository, VolunteerRepository
+from service import EmailService
 
-category_repository = CategoryRepository()
-parameter_repository = ParameterRepository()
-program_repository = ProgramRepository()
-request_repository = RequestRepository()
-subcategory_repository = SubCategoryRepository()
-team_repository = TeamRepository()
-vol_cat_repository = VolunteerCategoryRepository()
-volunteer_repository = VolunteerRepository()
+category_repo = CategoryRepository()
+parameter_repo = ParameterRepository()
+program_repo = ProgramRepository()
+request_repo = RequestRepository()
+setting_repo = SettingRepository()
+subcategory_repo = SubCategoryRepository()
+team_repo = TeamRepository()
+vol_cat_repo = VolunteerCategoryRepository()
+volunteer_repo = VolunteerRepository()
+
+email_service = EmailService()
 
 if "state" not in st.session_state:
     st.session_state["state"] = "Identification"
@@ -29,13 +35,27 @@ elif "volunteer_identified" in st.session_state and st.session_state["volunteer_
     st.session_state["is_program_date_req"] = False
     st.session_state["is_coordinator_email_req"] = False
 
+def load_css() -> None:
+    """Load application CSS."""
+
+    css_path = Path(__file__).parent / "styles" / "style.css"
+    css = css_path.read_text(encoding="utf-8")
+
+    st.markdown(
+        f"<style>{css}</style>",
+        unsafe_allow_html=True,
+    )
+
 def show_volunteer_email_identification() -> None:
     """Render the Volunteer identification flow."""
     # st.header("👤 Volunteer Identification")
 
+    required_label("📧 Email ID")
     email = st.text_input(
-        "📧 Email ID",
+        "",
         placeholder="Enter your email ID",
+        label_visibility="collapsed",
+        key="email_id"
     )
 
     if email:
@@ -43,7 +63,7 @@ def show_volunteer_email_identification() -> None:
             st.error("Please enter your email ID.")
             return
 
-        volunteer = volunteer_repository.get_latest_by_email(email)
+        volunteer = volunteer_repo.get_latest_by_email(email)
 
         if volunteer is not None:
             st.session_state["volunteer"] = volunteer
@@ -73,12 +93,19 @@ def show_volunteer_phone_identification() -> None:
                                         None,
                                     )
 
-    input_country = st.selectbox("🌍 Select Country Code", country_codes, index=default_country_code_index)
+    required_label("🌍 Select Country Code")
+    input_country = st.selectbox("", country_codes, 
+                                    index=default_country_code_index, 
+                                    label_visibility="collapsed",
+                                    key="country_code")
     input_country_code = input_country.country_code
 
+    required_label("📞 Phone Number")
     phone_number = st.text_input(
-        "📞 Phone Number",
+        "",
         placeholder="Enter phone number without country code",
+        label_visibility="collapsed",
+        key="phone_number"
     )
 
     if input_country_code and phone_number:
@@ -88,13 +115,13 @@ def show_volunteer_phone_identification() -> None:
 
         full_phone_number = f"+{input_country_code}{phone_number.strip()}"
 
-        volunteer = volunteer_repository.get_latest_by_phone(full_phone_number, input_country.region)
+        volunteer = volunteer_repo.get_latest_by_phone(full_phone_number, input_country.region)
 
         if volunteer is None:
             st.error("❌ Phone number does not exist in the database.")
-            st.warning(
-                "⚠️ Please check your details and try again."
-            )
+
+            warning = setting_repo.get_by_key("VOLUNTEER_IDENTIFICATION_MSG")
+            st.warning(f"⚠️ {warning.value}")
 
             if st.button("🔄 Retry"):
                 st.session_state["forgot_email_clicked"] = False
@@ -133,13 +160,16 @@ def show_category_selection() -> None:
         st.error("Volunteer not identified.")
         return
 
-    categories = category_repository.get_active_categories()
+    categories = category_repo.get_active_categories()
     category_options = {category.category: category for category in categories}
 
+    required_label("📌 I want to reach out to:")
     input_category_name = st.selectbox(
-        "📌 I want to reach out to:", # ** No longer relevant
+        "", # ** No longer relevant
         list(category_options.keys()),
-        index=None
+        index=None,
+        key="input_category_name",
+        label_visibility="collapsed",
     )
 
     if (input_category_name is not None) and (input_category_name in category_options):
@@ -165,16 +195,19 @@ def show_subcategory_selection() -> None:
         # st.error("Category not selected.")
         return
 
-    filtered_subcategories = subcategory_repository.get_by_category_id_for_vol_cat(
+    filtered_subcategories = subcategory_repo.get_by_category_id_for_vol_cat(
                                 input_category.category_id, 
                                 volunteer.volunteer_category)
 
     subcategory_options = {subcategory.name: subcategory for subcategory in filtered_subcategories}
 
+    required_label("📌 Sub Category")
     input_subcategory_name = st.selectbox(
-        "📌 Sub Category", # ** No longer relevant
+        "", # ** No longer relevant
         list(subcategory_options.keys()),
-        index=None
+        index = 0 if len(list(subcategory_options.keys())) == 1 else None, # Preselect if only 1 option is there
+        key="input_subcategory_name",
+        label_visibility="collapsed",
     )
 
     if (input_subcategory_name is not None) and (input_subcategory_name in subcategory_options):
@@ -203,9 +236,14 @@ def render_dynamic_dropdowns(sub_cat: SubCategory) -> None:
     cur_col = col1
     for field in dynamic_dropdowns:
         with cur_col:
-            option_values = parameter_repository.get_by_key(field["name"])
-
-            st.selectbox(field["name"], option_values, index = None, key = field["key_name"])
+            option_values = parameter_repo.get_by_key(field["name"])
+            if field["is_req"]:
+                required_label(field["name"])
+            
+            st.selectbox(field["name"] if not field["is_req"] else "", 
+                         option_values, index = None, 
+                         key = field["key_name"],
+                         label_visibility="collapsed",)
 
             cur_col = col1 if cur_col != col1 else col2
 
@@ -225,7 +263,12 @@ def render_dynamic_textbox(sub_cat: SubCategory) -> None:
     cur_col = col1
     for field in dynamic_textbox:
         with cur_col:
-            st.text_input(field["name"], placeholder=field["name"], key = field["key_name"])
+            if field["is_req"]:
+                required_label(field["name"])
+
+            st.text_input(field["name"] if not field["is_req"] else "", 
+                            placeholder=field["name"], key = field["key_name"],
+                            label_visibility="collapsed",)
 
             cur_col = col1 if cur_col != col1 else col2
 
@@ -245,16 +288,19 @@ def show_program_selection() -> None:
         # st.error("Category not selected.")
         return
 
-    programs = program_repository.get_by_category_and_gender(
+    programs = program_repo.get_by_category_and_gender(
                     input_category.category_id, 
                     volunteer.gender)
 
     program_options = {program.program_name: program for program in programs}
 
+    required_label("📌 Program")
     input_program_name = st.selectbox(
-        "📌 Program", # ** No longer relevant
+        "", # ** No longer relevant
         list(program_options.keys()),
-        index=None
+        index=None,
+        key="input_program_name",
+        label_visibility="collapsed",
     )
 
     if (input_program_name is not None) and (input_program_name in program_options):
@@ -279,7 +325,7 @@ def show_program_dates_selection() -> None:
     st.session_state["is_program_date_req"] = True
 
     # Assuming you have a method to get program dates based on the selected program
-    program_dates = program_repository.get_program_dates_in_range(
+    program_dates = program_repo.get_program_dates_in_range(
                         input_program.program_id, 
                         volunteer.departure_date)
 
@@ -287,11 +333,18 @@ def show_program_dates_selection() -> None:
         st.warning("No dates available for the selected program.")
         return
 
+    required_label("📅 Select Program Date")
     input_date = st.selectbox(
-        "📅 Select Program Date",
+        "",
         program_dates,
-        index=None
+        index=None,
+        key="input_date",
+        label_visibility="collapsed",
     )
+
+    info = setting_repo.get_by_key("PROGRAM_DATES_INFO_MSG")
+    if info and not info.value.isspace():
+        st.info(f"ℹ️ {info.value}")
 
     if input_date is not None:
         st.session_state["input_program_date"] = input_date
@@ -307,17 +360,27 @@ def show_custom_date_fields(program: Program) -> None:
     from_date, to_date = None, None
     col1, col2 = st.columns(2)
     to_date_value = None
+    max_date_value = date.today() + timedelta(days=90)
 
     with col1:
         if program.show_from_date_input:
             st.session_state["is_from_date_req"] = True
-            from_date = st.date_input("📅 From Date", format="DD/MM/YYYY")
+
+            required_label("📅 From Date")
+            from_date = st.date_input("", format="DD/MM/YYYY", key="from_date",
+                                      label_visibility="collapsed",
+                                      max_value=max_date_value)
+
             to_date_value = from_date + timedelta(days = program.duration_in_days if program.duration_in_days > 0 else 1)
 
     with (col1 if not program.show_from_date_input else col2): # both columns should be used only when both date fields need to be shown
         if program.show_to_date_input:
             st.session_state["is_to_date_req"] = True
-            to_date = st.date_input("📅 To Date", value = to_date_value, format="DD/MM/YYYY")
+
+            required_label("📅 To Date")
+            to_date = st.date_input("", value = to_date_value, format="DD/MM/YYYY", key="to_date",
+                                    label_visibility="collapsed",
+                                    max_value=max_date_value)
 
     if from_date:
         st.session_state["input_from_date"] = from_date
@@ -336,10 +399,13 @@ def show_coordinator_email_input() -> None:
     # I am assuming that if this function will be called only when coordinator email is required.
     st.session_state["is_coordinator_email_req"] = True
 
+    required_label("📧 Seva Coordinator Mail ID")
     coordinator_email = st.text_input(
-        "📧 Seva Coordinator Mail ID",
+        "",
         placeholder="Enter your Seva Coordinator Mail ID",
-        value=st.session_state.get("coordinator_email", "")
+        value=st.session_state.get("coordinator_email", ""),
+        key="coordinator_email",
+        label_visibility="collapsed",
     )
 
     if coordinator_email is not None and coordinator_email != "":
@@ -357,10 +423,13 @@ def show_coordinator_email_input() -> None:
     
 def show_description_box() -> None:
     """Render the description box."""
+    required_label("📝 Reason for your request")
     description = st.text_area(
-        "📝  Reason for your request",
+        "",
         placeholder="Please fill in with as much detail as possible",
         height=150,
+        key="description",
+        label_visibility="collapsed",
     )
 
     if description:
@@ -371,7 +440,7 @@ def show_description_box() -> None:
 
 def show_submit_button():
     """Render the submit button"""
-    submit = st.button("Submit Request")
+    submit = st.button("Submit Request", key="submit")
     if not submit:
         return
 
@@ -451,8 +520,14 @@ def show_submit_button():
 
     if from_date and to_date:
         if from_date >= to_date:
-            st.error("From Date cannot be later than To Date.")
+            st.error("❌ From Date cannot be later than To Date.")
             validation_results.append(False)
+
+        if (from_date >= volunteer.departure_date or 
+            to_date >= volunteer.departure_date):
+            st.error("❌ Input date cannot be later than your departure date. Please request extension if needed.")
+            validation_results.append(False)
+        
 
     is_coordinator_email_req = st.session_state.get("is_coordinator_email_req", False)
     if is_coordinator_email_req:
@@ -471,7 +546,12 @@ def show_submit_button():
     if not all(validation_results):
         return
 
-    save_record()
+    req: Request = None
+    document_lock = threading.Lock()
+    with document_lock:
+        req = save_record()
+
+    return req
 
 def show_help_text(help_text: str) -> None:
     """Render the help text."""
@@ -499,7 +579,7 @@ def validate_required(value: Any, error_message: str) -> bool:
 
 def save_record():
     volunteer = st.session_state["volunteer"]
-    vol_cat = vol_cat_repository.get_by_id(volunteer.volunteer_category)
+    vol_cat = vol_cat_repo.get_by_id(volunteer.volunteer_category)
                                            
     category = st.session_state["input_category"]
     subcategory = st.session_state.get("input_subcategory", None)
@@ -535,7 +615,7 @@ def save_record():
         if program.show_coordinator_email_input:
             coordinator_email = st.session_state["input_coordinator_email"]
 
-        team_map = program_repository.get_assigned_team(program.program_id, volunteer.volunteer_category)
+        team_map = program_repo.get_assigned_team(program.program_id, volunteer.volunteer_category)
         team_id = team_map.team_id
 
     # Prepare description
@@ -559,7 +639,7 @@ def save_record():
         description += f"\nSeva Coordinator Mail ID: {coordinator_email}"
 
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    existing_request_ids = request_repository.get_existing_ids()
+    existing_request_ids = request_repo.get_existing_ids()
     req = Request(
         request_id = utils.generate_request_id(vol_cat.request_label, existing_request_ids),
         person_id = volunteer.person_id,
@@ -571,6 +651,7 @@ def save_record():
         volunteer_category = volunteer.volunteer_category, # !! Need to ask if the code or full label should go here
         request_type = category.category,
         sub_category = subcategory.name if subcategory != None else program.program_name,
+        sub_category_id = subcategory.sub_category_id if subcategory != None else "",
         from_date = from_date,
         to_date = to_date,
         description = description,
@@ -584,7 +665,9 @@ def save_record():
         coordinator_email_id = coordinator_email
     )
 
-    request_repository.write_to_sheet(req)
+    request_repo.write_to_sheet(req)
+
+    return req
 
 def reset_req_flags():
     """
@@ -598,17 +681,66 @@ def reset_req_flags():
     st.session_state.pop("is_to_date_req", None)
     st.session_state.pop("is_coordinator_email_req", None)
 
+def required_label(label: str) -> None:
+    st.markdown(
+        f"""
+        <label class="required-label">
+            {label}&nbsp;<span class="required-star">*</span>
+        </label>
+        """,
+        unsafe_allow_html=True,
+    )
 
+def send_mail_requester(request: Request) -> None:
+    """Send the request notification to the requester."""
 
+    email_service._send_template_email(
+        request=request,
+        # recipient=request.email_id,
+        recipient="yogesh.jaykar-ext@gmail.com",
+        template_name=email_service.TEMPLATE_REQUESTER,
+    )
 
+def send_mail_team(request: Request) -> None:
+    """Send the request notification to the assigned team."""
 
+    team = team_repo.get_by_id(request.assigned_department)
 
+    email_service._send_template_email(
+        request=request,
+        # recipient=team.contact_email,
+        recipient="yogesh.jaykar-ext@gmail.com",
+        template_name=email_service.TEMPLATE_TEAM,
+    )
+
+def send_mail_secondary_email(request: Request, secondary_email: str) -> None:
+    """Send the request notification to a secondary email address."""
+
+    email_service._send_template_email(
+        request=request,
+        # recipient=secondary_email,
+        recipient="yogesh.jaykar-ext@gmail.com",
+        template_name=email_service.TEMPLATE_SECONDARY_EMAIL,
+    )
+
+def send_mail_coordinator(request: Request) -> None:
+    """Send the request notification to the coordinator."""
+
+    coordinator_email = request.coordinator_email_id
+
+    email_service._send_template_email(
+        request=request,
+        # recipient=coordinator_email,
+        recipient="yogesh.jaykar-ext@gmail.com",
+        template_name=email_service.TEMPLATE_COORDINATOR,
+    )
 
 if __name__ == "__main__":
     st.title("🔹 Raise a Request")
 
     reset_req_flags()
 
+    load_css()
     if st.session_state.get("state") == "Identification":
         show_volunteer_email_identification()
         show_forgot_email_button()
@@ -650,4 +782,13 @@ if __name__ == "__main__":
                     show_coordinator_email_input()
 
             show_description_box()
-            show_submit_button()
+            req = show_submit_button()
+
+            # send emails
+            # if req:
+            #     send_mail_requester(req)
+            #     send_mail_team(req)
+            #     if input_subcategory != None and input_subcategory.secondary_email:
+            #         send_mail_secondary_email(req, input_subcategory.secondary_email)
+
+            #     send_mail_coordinator(req)

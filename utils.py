@@ -8,7 +8,7 @@ from typing import Any
 import phonenumbers
 from phonenumbers import NumberParseException
 
-from entities import CountryCode
+from entities import CountryCode, Request
 
 
 def normalize_email(email: str | None) -> str | None:

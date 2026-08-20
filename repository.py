@@ -13,13 +13,14 @@ from utils import (
     parse_date,
     phone_numbers_match,
 )
+import utils
 
 
 
 
 #region Google Sheets headers
 
-VOLUNTEER_HEADERS = (
+VOLUNTEERS_HEADER = (
     "Visit ID",
     "Person ID",
     "Volunteer ID",
@@ -33,14 +34,14 @@ VOLUNTEER_HEADERS = (
     "Departure Date",
 )
 
-TEAM_HEADERS = (
+TEAMS_HEADER = (
     "Team ID",
     "Name",
     "Is Active",
     "Contact Email",
 )
 
-CATEGORY_HEADERS = (
+CATEGORIES_HEADER = (
     "Category ID",
     "Category",
     "Has Programs",
@@ -48,7 +49,7 @@ CATEGORY_HEADERS = (
     "Display Order",
 )
 
-SUB_CATEGORY_MASTER_HEADERS = (
+SUB_CATEGORIES_MASTER_HEADER = (
     "Sub Category ID",
     "Category ID",
     "Name",
@@ -62,16 +63,17 @@ SUB_CATEGORY_MASTER_HEADERS = (
     "Display Order",
     "Duration in Days",
     "Dynamic Dropdown Fields",
-    "Dynamic Textbox Fields"
+    "Dynamic Textbox Fields",
+    "Secondary Email ID"
 )
 
-PARAMETER_HEADERS = (
+PARAMETERS_HEADER = (
     "Parameter ID",
     "Parameter Name",
     "Parameter Value"
 )
 
-PROGRAM_HEADERS = (
+PROGRAMS_HEADER = (
     "Program ID",
     "Program Name",
     "Applicable Gender",
@@ -85,7 +87,7 @@ PROGRAM_HEADERS = (
     "Duration In Days"
 )
 
-PROGRAM_DATE_HEADERS = (
+PROGRAM_DATES_HEADER = (
     "Program Date ID",
     "Program ID",
     "Start Date",
@@ -94,7 +96,7 @@ PROGRAM_DATE_HEADERS = (
     "Total Slots",
 )
 
-REQUEST_HEADERS = (
+REQUESTS_HEADER = (
     "Request ID",
     "Person ID",
     "Visit ID",
@@ -105,6 +107,7 @@ REQUEST_HEADERS = (
     "Volunteer Category",
     "Request Type",
     "Sub Category",
+    "Sub Category ID",
     "From Date",
     "To Date",
     "Description",
@@ -121,10 +124,17 @@ REQUEST_HEADERS = (
     "Coordinator Email ID",
 )
 
-VALIDATION_CATEGORIES_HEADERS = (
+VALIDATION_CATEGORIES_HEADER = (
     "Volunteer Category ID",
     "Name",
     "Request Label"
+)
+
+SETTINGS_HEADER = (
+    "Setting ID",
+    "Name",
+    "Description",
+    "Value"
 )
 
 #endregion Google Sheets headers
@@ -170,35 +180,39 @@ def _validate_headers(headers: list[str], worksheet: str) -> None:
 
     if worksheet == "Volunteers":
         missing_headers = [
-            header for header in VOLUNTEER_HEADERS if header not in headers
+            header for header in VOLUNTEERS_HEADER if header not in headers
         ]
     elif worksheet == "Teams":
         missing_headers = [
-            header for header in TEAM_HEADERS if header not in headers
+            header for header in TEAMS_HEADER if header not in headers
         ]
     elif worksheet == "Categories":
         missing_headers = [
-            header for header in CATEGORY_HEADERS if header not in headers
+            header for header in CATEGORIES_HEADER if header not in headers
         ]
     elif worksheet == "Sub Categories":
         missing_headers = [
-            header for header in SUB_CATEGORY_MASTER_HEADERS if header not in headers
+            header for header in SUB_CATEGORIES_MASTER_HEADER if header not in headers
         ]
     elif worksheet == "Programs":
         missing_headers = [
-            header for header in PROGRAM_HEADERS if header not in headers
+            header for header in PROGRAMS_HEADER if header not in headers
         ]
     elif worksheet == "Program Dates":
         missing_headers = [
-            header for header in PROGRAM_DATE_HEADERS if header not in headers
+            header for header in PROGRAM_DATES_HEADER if header not in headers
         ]
     elif worksheet == "Requests":
         missing_headers = [
-            header for header in REQUEST_HEADERS if header not in headers
+            header for header in REQUESTS_HEADER if header not in headers
         ]
     elif worksheet == "Validation Categories":
         missing_headers = [
-            header for header in VALIDATION_CATEGORIES_HEADERS if header not in headers
+            header for header in VALIDATION_CATEGORIES_HEADER if header not in headers
+        ]
+    elif worksheet == "Settings":
+        missing_headers = [
+            header for header in SETTINGS_HEADER if header not in headers
         ]
     # ** Need to add more as worksheets are added
 
@@ -276,7 +290,8 @@ def _row_to_subcategory_entity(row: dict[str, Any]) -> SubCategory:
         display_order = int(str(row.get("Display Order", 0)).strip() or 0),
         duration_in_days = int(str(row.get("Duration in Days", 0)).strip() or 0),
         dynamic_dropdown_fields = dynamic_dropdown_fields,
-        dynamic_textbox_fields = dynamic_textbox_fields
+        dynamic_textbox_fields = dynamic_textbox_fields,
+        secondary_email = str(row.get("Secondary Email ID", "").strip())
     )       
 
 def _row_to_parameter_entity(row: dict[str, Any]) -> Parameter:
@@ -325,6 +340,14 @@ def _row_to_program_team_mapping_entity(row: dict[str, Any]) -> ProgramToTeamMap
         team_id = str(row.get("Team ID", ""))
     )
 
+def _row_to_settings_entity(row: dict[str, Any]) -> Setting:
+    return Setting(
+        setting_id = str(row.get("Setting ID", "")),
+        name = str(row.get("Name", "")),
+        description = str(row.get("Description", "")),
+        value = str(row.get("Value", "")),
+    )
+
 def _row_to_volunteer_category_entity(row: dict[str, Any]) -> VolunteerCategory:
     """Convert a Google Sheets row into a VolunteerCategory entity."""
 
@@ -339,12 +362,23 @@ def _row_to_volunteer_category_entity(row: dict[str, Any]) -> VolunteerCategory:
 
 
 
+cacheRetention = utils.get_setting("cacheRetention")
 
+required_tbl_list = [
+    "volunteers", "teams", "categories", 
+    "subcategories", "parameters", 
+    "programs", "program_dates", 
+    "program_team_mapping", 
+    "volunteer_categories", "settings"
+]
+for tbl in required_tbl_list:
+    if tbl not in cacheRetention.keys():
+        cacheRetention[tbl] = 60 * 5 # if no config is given, make 5 min the default
 
 
 # region Load data from Google Sheets into entities
 
-@st.cache_data(ttl=60 * 10, show_spinner=False)
+@st.cache_data(ttl=cacheRetention["volunteers"], show_spinner=False)
 def load_volunteers() -> tuple[Volunteer, ...]:
     """
     Load Volunteer records from Google Sheets.
@@ -376,7 +410,7 @@ def load_volunteers() -> tuple[Volunteer, ...]:
 
     return tuple(volunteers)
 
-@st.cache_data(ttl=60 * 30, show_spinner=False)
+@st.cache_data(ttl=cacheRetention["teams"], show_spinner=False)
 def load_teams() -> tuple[Team, ...]:
     """
     Load Team Master records from Google Sheets.
@@ -405,7 +439,7 @@ def load_teams() -> tuple[Team, ...]:
 
     return tuple(teams)
 
-@st.cache_data(ttl=60 * 30, show_spinner=False)
+@st.cache_data(ttl=cacheRetention["categories"], show_spinner=False)
 def load_categories() -> list[Category]:
     """
     Load Category records from Google Sheets.
@@ -436,7 +470,7 @@ def load_categories() -> list[Category]:
 
     return categories
 
-@st.cache_data(ttl=60 * 30, show_spinner=False)
+@st.cache_data(ttl=cacheRetention["subcategories"], show_spinner=False)
 def load_subcategories() -> list[SubCategory]:
     """
     Load Sub Category records from Google Sheets.
@@ -467,7 +501,7 @@ def load_subcategories() -> list[SubCategory]:
 
     return subcategories
 
-@st.cache_data(ttl=60 * 30, show_spinner=False)
+@st.cache_data(ttl=cacheRetention["parameters"], show_spinner=False)
 def load_parameters() -> tuple[Parameter, ...]:
     """
     Load Parameter records from Google Sheets.
@@ -496,7 +530,7 @@ def load_parameters() -> tuple[Parameter, ...]:
 
     return tuple(parameters)
 
-@st.cache_data(ttl=60 * 30, show_spinner=False)
+@st.cache_data(ttl=cacheRetention["programs"], show_spinner=False)
 def load_programs() -> tuple[Program, ...]:
     """
     Load Program records from Google Sheets.
@@ -525,7 +559,7 @@ def load_programs() -> tuple[Program, ...]:
 
     return tuple(programs)
 
-@st.cache_data(ttl=60 * 30, show_spinner=False)
+@st.cache_data(ttl=cacheRetention["program_dates"], show_spinner=False)
 def load_program_dates() -> tuple[ProgramDates, ...]:
     """
     Load Program Dates records from Google Sheets.
@@ -554,7 +588,7 @@ def load_program_dates() -> tuple[ProgramDates, ...]:
 
     return tuple(programs)
 
-@st.cache_data(ttl=60 * 30, show_spinner=False)
+@st.cache_data(ttl=cacheRetention["program_team_mapping"], show_spinner=False)
 def load_program_team_mapping() -> tuple[ProgramToTeamMapping, ...]:
     """
     Load Program Team Mapping records from Google Sheets.
@@ -583,7 +617,7 @@ def load_program_team_mapping() -> tuple[ProgramToTeamMapping, ...]:
 
     return tuple(mapping)
 
-@st.cache_data(ttl=60 * 30, show_spinner=False)
+@st.cache_data(ttl=cacheRetention["volunteer_categories"], show_spinner=False)
 def load_volunteer_categories() -> tuple[VolunteerCategory, ...]:
     """
     Load Volunteer Category records from Google Sheets.
@@ -640,6 +674,34 @@ def load_request_ids() -> tuple[str, ...]:
 
     return tuple(request_ids)
     
+@st.cache_data(ttl=cacheRetention["settings"], show_spinner=False)
+def load_settings() -> tuple[Setting, ...]:
+    """
+    Load Settings records from Google Sheets.
+    """
+    
+    sheet = get_google_sheet()
+    worksheet = sheet.worksheet("Settings") # ** Need to check if this is working
+    values = worksheet.get_all_values()
+
+    if not values:
+        return ()
+
+    headers = [str(header).strip() for header in values[0]]
+    _validate_headers(headers, "Settings") # ** Need to check if this is working
+
+    settings: list[Parameter] = []
+
+    for raw_row in values[1:]: # !! Don't know what this padded_row is doing
+        padded_row = raw_row + [""] * max( 
+            0,
+            len(headers) - len(raw_row),
+        )
+
+        row = dict(zip(headers, padded_row))
+        settings.append(_row_to_settings_entity(row))
+
+    return tuple(settings)
 
 # endregion Load data from Google Sheets into entities
 
@@ -840,6 +902,7 @@ class ParameterRepository:
                                 if param.parameter_name == key ]
 
         return filtered_parameters
+
 class ProgramRepository:
     """Read-only repository for Program records."""
 
@@ -960,6 +1023,7 @@ class RequestRepository:
             self._format_value(request.volunteer_category),
             self._format_value(request.request_type),
             self._format_value(request.sub_category),
+            self._format_value(request.sub_category_id),
             self._format_value(request.from_date),
             self._format_value(request.to_date),
             self._format_value(request.description),
@@ -982,6 +1046,23 @@ class RequestRepository:
             value_input_option="USER_ENTERED",
             insert_data_option="INSERT_ROWS",
         )
+
+class SettingRepository:
+    """Read-only repository for Setting records."""
+
+    def __init__(self, settings: tuple[Setting, ...] | None = None):
+        self._settings = (
+            load_settings()
+            if settings is None
+            else settings
+        )
+
+    def get_by_key(self, key: str) -> Setting:
+        for setting in self._settings:
+            if setting.name == key:
+                return setting
+        
+        return None
 
 class VolunteerCategoryRepository:
     """Read-only repository for VolunteerCategory records."""

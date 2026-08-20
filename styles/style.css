@@ -1,0 +1,9 @@
+.required-label {
+    font-size: 14px;
+    margin-bottom: 6px;
+}
+
+.required-star {
+    color: red;
+    font-weight: 600;
+}
