@@ -29,6 +29,17 @@ class EmailService:
     def __init__(self) -> None:
         """Initialize the email service using Streamlit secrets."""
 
+        """Pattern
+        [smtp]
+        host = "smtp.gmail.com"
+        port = 587
+        username = "your-email@example.com"
+        password = "your-smtp-password"
+        from_email = "your-email@example.com"
+        from_name = "Volunteer Support Portal"
+        
+        """
+
         smtp_config = st.secrets.get("smtp")
 
         if smtp_config is None:

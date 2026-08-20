@@ -9,7 +9,6 @@ import re
 
 from entities import Program, Request, SubCategory
 from repository import CategoryRepository, ParameterRepository, ProgramRepository, RequestRepository, SettingRepository, SubCategoryRepository, TeamRepository, VolunteerCategoryRepository, VolunteerRepository
-from service import EmailService
 
 category_repo = CategoryRepository()
 parameter_repo = ParameterRepository()
@@ -20,8 +19,6 @@ subcategory_repo = SubCategoryRepository()
 team_repo = TeamRepository()
 vol_cat_repo = VolunteerCategoryRepository()
 volunteer_repo = VolunteerRepository()
-
-email_service = EmailService()
 
 if "state" not in st.session_state:
     st.session_state["state"] = "Identification"
@@ -649,9 +646,9 @@ def save_record():
         email_id = volunteer.email_id,
         phone_number = volunteer.phone_number,
         volunteer_category = volunteer.volunteer_category, # !! Need to ask if the code or full label should go here
-        request_type = category.category,
-        sub_category = subcategory.name if subcategory != None else program.program_name,
+        category_id= category.category_id,
         sub_category_id = subcategory.sub_category_id if subcategory != None else "",
+        program_id = program.program_id if program != None else "",
         from_date = from_date,
         to_date = to_date,
         description = description,
@@ -691,49 +688,49 @@ def required_label(label: str) -> None:
         unsafe_allow_html=True,
     )
 
-def send_mail_requester(request: Request) -> None:
-    """Send the request notification to the requester."""
+# def send_mail_requester(request: Request) -> None:
+#     """Send the request notification to the requester."""
 
-    email_service._send_template_email(
-        request=request,
-        # recipient=request.email_id,
-        recipient="yogesh.jaykar-ext@gmail.com",
-        template_name=email_service.TEMPLATE_REQUESTER,
-    )
+#     email_service._send_template_email(
+#         request=request,
+#         # recipient=request.email_id,
+#         recipient="yogesh.jaykar-ext@gmail.com",
+#         template_name=email_service.TEMPLATE_REQUESTER,
+#     )
 
-def send_mail_team(request: Request) -> None:
-    """Send the request notification to the assigned team."""
+# def send_mail_team(request: Request) -> None:
+#     """Send the request notification to the assigned team."""
 
-    team = team_repo.get_by_id(request.assigned_department)
+#     team = team_repo.get_by_id(request.assigned_department)
 
-    email_service._send_template_email(
-        request=request,
-        # recipient=team.contact_email,
-        recipient="yogesh.jaykar-ext@gmail.com",
-        template_name=email_service.TEMPLATE_TEAM,
-    )
+#     email_service._send_template_email(
+#         request=request,
+#         # recipient=team.contact_email,
+#         recipient="yogesh.jaykar-ext@gmail.com",
+#         template_name=email_service.TEMPLATE_TEAM,
+#     )
 
-def send_mail_secondary_email(request: Request, secondary_email: str) -> None:
-    """Send the request notification to a secondary email address."""
+# def send_mail_secondary_email(request: Request, secondary_email: str) -> None:
+#     """Send the request notification to a secondary email address."""
 
-    email_service._send_template_email(
-        request=request,
-        # recipient=secondary_email,
-        recipient="yogesh.jaykar-ext@gmail.com",
-        template_name=email_service.TEMPLATE_SECONDARY_EMAIL,
-    )
+#     email_service._send_template_email(
+#         request=request,
+#         # recipient=secondary_email,
+#         recipient="yogesh.jaykar-ext@gmail.com",
+#         template_name=email_service.TEMPLATE_SECONDARY_EMAIL,
+#     )
 
-def send_mail_coordinator(request: Request) -> None:
-    """Send the request notification to the coordinator."""
+# def send_mail_coordinator(request: Request) -> None:
+#     """Send the request notification to the coordinator."""
 
-    coordinator_email = request.coordinator_email_id
+#     coordinator_email = request.coordinator_email_id
 
-    email_service._send_template_email(
-        request=request,
-        # recipient=coordinator_email,
-        recipient="yogesh.jaykar-ext@gmail.com",
-        template_name=email_service.TEMPLATE_COORDINATOR,
-    )
+#     email_service._send_template_email(
+#         request=request,
+#         # recipient=coordinator_email,
+#         recipient="yogesh.jaykar-ext@gmail.com",
+#         template_name=email_service.TEMPLATE_COORDINATOR,
+#     )
 
 if __name__ == "__main__":
     st.title("🔹 Raise a Request")
