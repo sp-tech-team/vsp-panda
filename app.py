@@ -122,6 +122,7 @@ def show_volunteer_phone_identification() -> None:
     input_country = st.selectbox("", country_codes, 
                                     index=default_country_code_index, 
                                     label_visibility="collapsed",
+                                    placeholder="Select country code",
                                     key="country_code")
     input_country_code = input_country.country_code
 
@@ -221,6 +222,7 @@ def show_category_selection() -> None:
         index=None,
         key="input_category_name",
         label_visibility="collapsed",
+        placeholder="Select Category",
     )
 
     if (input_category_name is not None) and (input_category_name in category_options):
@@ -264,8 +266,9 @@ def show_subcategory_selection() -> None:
         "", # ** No longer relevant
         list(subcategory_options.keys()),
         index = 0 if len(list(subcategory_options.keys())) == 1 else None, # Preselect if only 1 option is there
-        key="input_subcategory_name",
-        label_visibility="collapsed",
+        key = "input_subcategory_name",
+        label_visibility = "collapsed",
+        placeholder = "Select Sub Category"
     )
 
     if (input_subcategory_name is not None) and (input_subcategory_name in subcategory_options):
@@ -299,9 +302,10 @@ def render_dynamic_dropdowns(sub_cat: SubCategory) -> None:
                 required_label(field["name"])
             
             st.selectbox(field["name"] if not field["is_req"] else "", 
-                         option_values, index = None, 
-                         key = field["key_name"],
-                         label_visibility="collapsed",)
+                        option_values, index = None, 
+                        key = field["key_name"],
+                        label_visibility = "collapsed",
+                        placeholder = f"Select {field["name"]}")
 
             cur_col = col1 if cur_col != col1 else col2
 
@@ -399,9 +403,10 @@ def show_program_dates_selection() -> None:
     input_date = st.selectbox(
         "",
         program_dates,
-        index=None,
-        key="input_date",
-        label_visibility="collapsed",
+        index = None,
+        key = "input_date",
+        label_visibility = "collapsed",
+        placeholder = "Select Program Date"
     )
 
     if input_date is not None:
@@ -427,7 +432,7 @@ def show_custom_date_fields(subcategory: SubCategory) -> None:
             required_label("📅 From Date")
             from_date = st.date_input("", format="DD/MM/YYYY", key="from_date",
                                       label_visibility="collapsed",
-                                      max_value=max_date_value)
+                                      max_value=max_date_value,)
 
             to_date_value = from_date + timedelta(days = subcategory.duration_in_days if subcategory.duration_in_days > 0 else 1)
 
