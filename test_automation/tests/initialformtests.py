@@ -2,7 +2,7 @@ from playwright.sync_api import sync_playwright, expect
 from pathlib import Path
 import json
 
-json_file = Path(__file__).parent.parent / "tests" / "test_data.json"
+json_file = Path(__file__).parent.parent / "tests" / "testdata.json"
 
 with open(json_file, "r") as f:
     data = json.load(f)

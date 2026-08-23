@@ -4,7 +4,7 @@ import json
 import time
 
 
-json_file = Path(__file__).parent.parent / "tests" / "test_data.json"
+json_file = Path(__file__).parent.parent / "tests" / "ltv_testdata.json"
 
 with open(json_file, "r") as f:
     data = json.load(f)

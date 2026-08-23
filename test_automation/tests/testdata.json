@@ -78,53 +78,5 @@
         "ToDate": null,
         "CoordinatorEmail": null,
         "Reason": null
-    },
-    "test_ltv_usrdtl_valid_email": {
-        "EmailId": "vani.juvvala-ext@sadhguru.org",
-        "CountryCode": null,
-        "PhoneNumber": null,
-        "Name": "Vani Juvvala",
-        "VolunteerCategory": "LTV",
-        "DepartureDate": "Sep 03, 2026",
-        "Category": null,
-        "SubCategory": null,
-        "Program": null,
-        "ProgramDate": null,
-        "FromDate": null,
-        "ToDate": null,
-        "CoordinatorEmail": null,
-        "Reason": null
-    },
-    "test_ltv_usrdtl_valid_phnnum": {
-        "EmailId": null,
-        "CountryCode": null,
-        "PhoneNumber": "9123456789",
-        "Name": "Vani J",
-        "VolunteerCategory": "LTV",
-        "DepartureDate": "Sep 30, 2026",
-        "Category": null,
-        "SubCategory": null,
-        "Program": null,
-        "ProgramDate": null,
-        "FromDate": null,
-        "ToDate": null,
-        "CoordinatorEmail": null,
-        "Reason": null
-    },
-    "test_ltv_usrdtl_accom_sahaya": {
-        "EmailId": null,
-        "CountryCode": null,
-        "PhoneNumber": "9123456789",
-        "Name": "Vani J",
-        "VolunteerCategory": "LTV",
-        "DepartureDate": "Sep 30, 2026",
-        "Category": "Accommodation",
-        "SubCategory": "Meet Sahaya Team",
-        "Program": null,
-        "ProgramDate": null,
-        "FromDate": null,
-        "ToDate": null,
-        "CoordinatorEmail": "testauto@coordinator.com",
-        "Reason": "Test automation creating request for Accommodation and Meet Sahaya Team"
     }
 }
