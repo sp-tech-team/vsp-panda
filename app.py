@@ -1,18 +1,20 @@
 from datetime import date, datetime, timedelta
 from pathlib import Path
+import traceback
 from typing import Any
 
 import streamlit as st
 import threading
 import utils
 import re
+import time
 
-from entities import Program, Request, SubCategory
-from repository import CategoryRepository, ParameterRepository, ProgramRepository, RequestRepository, SettingRepository, SubCategoryRepository, TeamRepository, VolunteerCategoryRepository, VolunteerRepository
+from entities import Log, Request, SubCategory
+from repository import CategoryRepository, LogRepository, ParameterRepository, RequestRepository, SettingRepository, SubCategoryRepository, TeamRepository, VolunteerCategoryRepository, VolunteerRepository
 
 category_repo = CategoryRepository()
+log_repo = LogRepository()
 parameter_repo = ParameterRepository()
-program_repo = ProgramRepository()
 request_repo = RequestRepository()
 setting_repo = SettingRepository()
 subcategory_repo = SubCategoryRepository()
@@ -20,9 +22,7 @@ team_repo = TeamRepository()
 vol_cat_repo = VolunteerCategoryRepository()
 volunteer_repo = VolunteerRepository()
 
-if "state" not in st.session_state:
-    st.session_state["state"] = "Identification"
-elif "volunteer_identified" in st.session_state and st.session_state["volunteer_identified"]:
+if "volunteer_identified" in st.session_state and st.session_state["volunteer_identified"]:
     st.session_state["state"] = "Form"
 
     # These fields are requried for validating the form
@@ -31,6 +31,8 @@ elif "volunteer_identified" in st.session_state and st.session_state["volunteer_
     st.session_state["is_program_selection"] = False
     st.session_state["is_program_date_req"] = False
     st.session_state["is_coordinator_email_req"] = False
+elif "state" not in st.session_state:
+    st.session_state["state"] = "Identification"
 
 def load_css() -> None:
     """Load application CSS."""
@@ -60,17 +62,43 @@ def show_volunteer_email_identification() -> None:
             st.error("Please enter your email ID.")
             return
 
-        volunteer = volunteer_repo.get_latest_by_email(email)
+        volunteer, return_msg = volunteer_repo.get_latest_by_email(email)
 
-        if volunteer is not None:
+        if volunteer is not None and not return_msg:
             st.session_state["volunteer"] = volunteer
             st.session_state["volunteer_identified"] = True
 
             if st.session_state.get("volunteer_identified"):
                 volunteer = st.session_state["volunteer"]
+
+                # Log the identification success
+                now: datetime = datetime.now()
+                log: Log = Log(
+                    log_id = f"L-{now.strftime("%y%m%d-%H%M%S")}",
+                    ip_address = utils.get_client_ip(),
+                    email_id = volunteer.email_id,
+                    phone_number = volunteer.phone_number,
+                    message = f"Identified user." + 
+                                f"Visit ID: {volunteer.visit_id} | " + 
+                                f"Person ID: {volunteer.person_id} | " + 
+                                f"Volunteer ID: {volunteer.volunteer_id}",
+                    timestamp = now
+                )
+                log_repo.write_to_sheet(log)
+
                 st.rerun()
 
         st.error("❌ Email ID does not exist in the database.")
+
+        # Log the identification failure
+        now: datetime = datetime.now()
+        log: Log = Log(
+            log_id = f"L-{now.strftime("%y%m%d-%H%M%S")}",
+            ip_address = utils.get_client_ip(),
+            message = f"Failed to identify user. Email: {email}. {return_msg}",
+            timestamp = now
+        )
+        log_repo.write_to_sheet(log)
         
 def show_forgot_email_button() -> None:
     """Render the 'Forgot Email' button."""
@@ -112,13 +140,23 @@ def show_volunteer_phone_identification() -> None:
 
         full_phone_number = f"+{input_country_code}{phone_number.strip()}"
 
-        volunteer = volunteer_repo.get_latest_by_phone(full_phone_number, input_country.region)
+        volunteer, return_msg = volunteer_repo.get_latest_by_phone(full_phone_number, input_country.region)
 
-        if volunteer is None:
+        if volunteer is None or return_msg:
             st.error("❌ Phone number does not exist in the database.")
 
             warning = setting_repo.get_by_key("VOLUNTEER_IDENTIFICATION_MSG")
             st.warning(f"⚠️ {warning.value}")
+
+            # Log the identification failure
+            now: datetime = datetime.now()
+            log: Log = Log(
+                log_id = f"L-{now.strftime("%y%m%d-%H%M%S")}",
+                ip_address = utils.get_client_ip(),
+                message = f"Failed to identify user. Phone: {phone_number}. {return_msg}",
+                timestamp = now
+            )
+            log_repo.write_to_sheet(log)
 
             if st.button("🔄 Retry"):
                 st.session_state["forgot_email_clicked"] = False
@@ -130,6 +168,22 @@ def show_volunteer_phone_identification() -> None:
 
         st.session_state["volunteer"] = volunteer
         st.session_state["volunteer_identified"] = True
+
+        # Log the identification success
+        now: datetime = datetime.now()
+        log: Log = Log(
+            log_id = f"L-{now.strftime("%y%m%d-%H%M%S")}",
+            ip_address = utils.get_client_ip(),
+            email_id = volunteer.email_id,
+            phone_number = volunteer.phone_number,
+            message = f"Identified user." + 
+                        f"Visit ID: {volunteer.visit_id} | " + 
+                        f"Person ID: {volunteer.person_id} | " + 
+                        f"Volunteer ID: {volunteer.volunteer_id}",
+            timestamp = now
+        )
+        log_repo.write_to_sheet(log)
+
         st.rerun()
 
     if st.session_state.get("volunteer_identified"):
@@ -192,9 +246,16 @@ def show_subcategory_selection() -> None:
         # st.error("Category not selected.")
         return
 
-    filtered_subcategories = subcategory_repo.get_by_category_id_for_vol_cat(
-                                input_category.category_id, 
-                                volunteer.volunteer_category)
+    filtered_subcategories = []
+    if input_category.has_programs:
+        filtered_subcategories = subcategory_repo.get_by_category_and_gender(
+                                            input_category.category_id, 
+                                            volunteer.gender,
+                                            volunteer.volunteer_category)
+    else:
+        filtered_subcategories = subcategory_repo.get_by_category_id_for_vol_cat(
+                                    input_category.category_id, 
+                                    volunteer.volunteer_category)
 
     subcategory_options = {subcategory.name: subcategory for subcategory in filtered_subcategories}
 
@@ -269,51 +330,51 @@ def render_dynamic_textbox(sub_cat: SubCategory) -> None:
 
             cur_col = col1 if cur_col != col1 else col2
 
-def show_program_selection() -> None:
-    """Render the program selection flow."""
-    volunteer = st.session_state.get("volunteer")
-    if not volunteer:
-        st.error("Volunteer not identified.")
-        return
+# def show_program_selection() -> None:
+#     """Render the program selection flow."""
+#     volunteer = st.session_state.get("volunteer")
+#     if not volunteer:
+#         st.error("Volunteer not identified.")
+#         return
 
-    # This field is used for form validation. 
-    # I am assuming that if this function will be called only when program is required.
-    st.session_state["is_program_req"] = True
+#     # This field is used for form validation. 
+#     # I am assuming that if this function will be called only when program is required.
+#     st.session_state["is_program_req"] = True
     
-    input_category = st.session_state.get("input_category")
-    if not input_category:
-        # st.error("Category not selected.")
-        return
+#     input_category = st.session_state.get("input_category")
+#     if not input_category:
+#         # st.error("Category not selected.")
+#         return
 
-    programs = program_repo.get_by_category_and_gender(
-                    input_category.category_id, 
-                    volunteer.gender)
+#     programs = subcategory_repo.get_by_category_and_gender(
+#                     input_category.category_id, 
+#                     volunteer.gender)
 
-    program_options = {program.program_name: program for program in programs}
+#     program_options = {program.name: program for program in programs}
 
-    required_label("📌 Program")
-    input_program_name = st.selectbox(
-        "", # ** No longer relevant
-        list(program_options.keys()),
-        index=None,
-        key="input_program_name",
-        label_visibility="collapsed",
-    )
+#     required_label("📌 Program")
+#     input_program_name = st.selectbox(
+#         "", # ** No longer relevant
+#         list(program_options.keys()),
+#         index=None,
+#         key="input_program_name",
+#         label_visibility="collapsed",
+#     )
 
-    if (input_program_name is not None) and (input_program_name in program_options):
-        input_program = program_options[input_program_name]
-        st.session_state["input_program"] = input_program
+#     if (input_program_name is not None) and (input_program_name in program_options):
+#         input_program = program_options[input_program_name]
+#         st.session_state["input_program"] = input_program
 
-        show_help_text(input_program.help_text)
+#         show_help_text(input_program.help_text)
 
-        return
+#         return
 
-    st.session_state.pop("input_program", None)
+#     st.session_state.pop("input_program", None)
 
 def show_program_dates_selection() -> None:
     """Render the program dates selection flow."""
-    input_program = st.session_state.get("input_program")
-    if not input_program:
+    input_subcategory = st.session_state.get("input_subcategory")
+    if not input_subcategory:
         # st.error("Program not selected.")
         return
 
@@ -322,9 +383,13 @@ def show_program_dates_selection() -> None:
     st.session_state["is_program_date_req"] = True
 
     # Assuming you have a method to get program dates based on the selected program
-    program_dates = program_repo.get_program_dates_in_range(
-                        input_program.program_id, 
+    program_dates = subcategory_repo.get_program_dates_in_range(
+                        input_subcategory.subcategory_id, 
                         volunteer.departure_date)
+
+    info = setting_repo.get_by_key("PROGRAM_DATES_INFO_MSG")
+    if info and not info.value.isspace():
+        st.info(f"ℹ️ {info.value}")
 
     if not program_dates:
         st.warning("No dates available for the selected program.")
@@ -339,19 +404,15 @@ def show_program_dates_selection() -> None:
         label_visibility="collapsed",
     )
 
-    info = setting_repo.get_by_key("PROGRAM_DATES_INFO_MSG")
-    if info and not info.value.isspace():
-        st.info(f"ℹ️ {info.value}")
-
     if input_date is not None:
         st.session_state["input_program_date"] = input_date
         return
 
     st.session_state.pop("input_program_date", None)
 
-def show_custom_date_fields(program: Program) -> None:
+def show_custom_date_fields(subcategory: SubCategory) -> None:
     """Render the from date fields, conditionally."""
-    if not program.show_from_date_input and not program.show_to_date_input:
+    if not subcategory.show_from_date_input and not subcategory.show_to_date_input:
         return
 
     from_date, to_date = None, None
@@ -360,7 +421,7 @@ def show_custom_date_fields(program: Program) -> None:
     max_date_value = date.today() + timedelta(days=90)
 
     with col1:
-        if program.show_from_date_input:
+        if subcategory.show_from_date_input:
             st.session_state["is_from_date_req"] = True
 
             required_label("📅 From Date")
@@ -368,10 +429,10 @@ def show_custom_date_fields(program: Program) -> None:
                                       label_visibility="collapsed",
                                       max_value=max_date_value)
 
-            to_date_value = from_date + timedelta(days = program.duration_in_days if program.duration_in_days > 0 else 1)
+            to_date_value = from_date + timedelta(days = subcategory.duration_in_days if subcategory.duration_in_days > 0 else 1)
 
-    with (col1 if not program.show_from_date_input else col2): # both columns should be used only when both date fields need to be shown
-        if program.show_to_date_input:
+    with (col1 if not subcategory.show_from_date_input else col2): # both columns should be used only when both date fields need to be shown
+        if subcategory.show_to_date_input:
             st.session_state["is_to_date_req"] = True
 
             required_label("📅 To Date")
@@ -548,6 +609,20 @@ def show_submit_button():
     with document_lock:
         req = save_record()
 
+    time.sleep(10) # without delay appscript gets confused about whether request, or log table is modified
+
+    # Log the request generation success
+    now: datetime = datetime.now()
+    log: Log = Log(
+        log_id = f"L-{now.strftime("%y%m%d-%H%M%S")}",
+        ip_address = utils.get_client_ip(),
+        email_id = volunteer.email_id,
+        phone_number = volunteer.phone_number,
+        message = f"Request raised. Request ID: {req.request_id}",
+        timestamp = now
+    )
+    log_repo.write_to_sheet(log)
+
     return req
 
 def show_help_text(help_text: str) -> None:
@@ -604,16 +679,16 @@ def save_record():
 
         team_id = subcategory.team_id
 
-    if program is not None:
-        if program.show_from_date_input:
-            from_date = st.session_state["input_from_date"]
-        if program.show_to_date_input:
-            to_date = st.session_state["input_to_date"]
-        if program.show_coordinator_email_input:
-            coordinator_email = st.session_state["input_coordinator_email"]
+    # if program is not None:
+    #     if program.show_from_date_input:
+    #         from_date = st.session_state["input_from_date"]
+    #     if program.show_to_date_input:
+    #         to_date = st.session_state["input_to_date"]
+    #     if program.show_coordinator_email_input:
+    #         coordinator_email = st.session_state["input_coordinator_email"]
 
-        team_map = program_repo.get_assigned_team(program.program_id, volunteer.volunteer_category)
-        team_id = team_map.team_id
+    #     team_map = program_repo.get_assigned_team(program.program_id, volunteer.volunteer_category)
+    #     team_id = team_map.team_id
 
     # Prepare description
 
@@ -647,7 +722,7 @@ def save_record():
         phone_number = volunteer.phone_number,
         volunteer_category = volunteer.volunteer_category, # !! Need to ask if the code or full label should go here
         category_id= category.category_id,
-        sub_category_id = subcategory.sub_category_id if subcategory != None else "",
+        subcategory_id = subcategory.subcategory_id if subcategory != None else "",
         program_id = program.program_id if program != None else "",
         from_date = from_date,
         to_date = to_date,
@@ -733,59 +808,75 @@ def required_label(label: str) -> None:
 #     )
 
 if __name__ == "__main__":
-    st.title("🔹 Raise a Request")
-
-    reset_req_flags()
-
-    load_css()
-    if st.session_state.get("state") == "Identification":
-        show_volunteer_email_identification()
-        show_forgot_email_button()
+    try:
+        st.title("🔹 Raise a Request")
     
-        if st.session_state.get("forgot_email_clicked"):
-            show_volunteer_phone_identification()
+        reset_req_flags()
 
-    elif st.session_state.get("state") == "Form":
-        volunteer = st.session_state.get("volunteer")
-        if volunteer:
-            show_volunteer_details()
+        load_css()
+        if st.session_state.get("state") == "Identification":
+            show_volunteer_email_identification()
+            show_forgot_email_button()
+        
+            if st.session_state.get("forgot_email_clicked"):
+                show_volunteer_phone_identification()
 
-            show_category_selection()
-            input_category = st.session_state.get("input_category")
-            if input_category != None:
-                if input_category.has_programs:
-                    show_program_selection()
-                else:
+        elif st.session_state.get("state") == "Form":
+            volunteer = st.session_state.get("volunteer")
+            if volunteer:
+                show_volunteer_details()
+
+                show_category_selection()
+                input_category = st.session_state.get("input_category")
+                if input_category != None:
                     show_subcategory_selection()
 
-            input_subcategory = st.session_state.get("input_subcategory")
-            if input_subcategory != None:
-                render_dynamic_dropdowns(input_subcategory)
-                render_dynamic_textbox(input_subcategory)
-                show_custom_date_fields(input_subcategory)
+                input_subcategory = st.session_state.get("input_subcategory")
+                if input_subcategory != None:
+                    render_dynamic_dropdowns(input_subcategory)
+                    render_dynamic_textbox(input_subcategory)
+                    if input_category.has_programs:
+                        if (not input_subcategory.show_from_date_input and 
+                            not input_subcategory.show_to_date_input):
+                            show_program_dates_selection()
+                        else:
+                            show_custom_date_fields(input_subcategory)
+                    else:
+                        show_custom_date_fields(input_subcategory)
 
-                if input_subcategory.show_coordinator_email_input:
-                    show_coordinator_email_input()
 
-            input_program = st.session_state.get("input_program")
-            if input_program != None:
-                if (not input_program.show_from_date_input and 
-                    not input_program.show_to_date_input):
-                    show_program_dates_selection()
-                else:
-                    show_custom_date_fields(input_program)
+                    if input_subcategory.show_coordinator_email_input:
+                        show_coordinator_email_input()
 
-                if input_program.show_coordinator_email_input:
-                    show_coordinator_email_input()
+                input_program = st.session_state.get("input_program")
+                if input_program != None:
 
-            show_description_box()
-            req = show_submit_button()
+                    if input_program.show_coordinator_email_input:
+                        show_coordinator_email_input()
 
-            # send emails
-            # if req:
-            #     send_mail_requester(req)
-            #     send_mail_team(req)
-            #     if input_subcategory != None and input_subcategory.secondary_email:
-            #         send_mail_secondary_email(req, input_subcategory.secondary_email)
+                show_description_box()
+                req = show_submit_button()
 
-            #     send_mail_coordinator(req)
+                # send emails
+                # if req:
+                #     send_mail_requester(req)
+                #     send_mail_team(req)
+                #     if input_subcategory != None and input_subcategory.secondary_email:
+                #         send_mail_secondary_email(req, input_subcategory.secondary_email)
+
+                #     send_mail_coordinator(req)
+    except Exception as e: 
+        # Log the error
+        volunteer = st.session_state.get("volunteer")
+
+        now: datetime = datetime.now()
+        log: Log = Log(
+            log_id = f"L-{now.strftime("%y%m%d-%H%M%S")}",
+            ip_address = utils.get_client_ip(),
+            email_id = volunteer.email_id if volunteer else "",
+            phone_number = volunteer.phone_number if volunteer else "",
+            message = f"An error occurred. Error: {str(e)}",
+            exception = traceback.format_exc(),
+            timestamp = now
+        )
+        log_repo.write_to_sheet(log)

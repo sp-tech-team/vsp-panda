@@ -4,36 +4,6 @@ from dataclasses import dataclass
 from datetime import date, datetime
 
 
-@dataclass
-class Volunteer:
-    """Represents a volunteer record from the Volunteer Google Sheet."""
-
-    visit_id: str
-    person_id: str # !! Need to ask SH about datafield
-    volunteer_id: str
-    name: str
-    gender: str
-    email_id: str
-    phone_number: str
-    country: str
-    volunteer_category: str
-    seva_name: str
-    departure_date: date | None = None
-
-    def __str__(self) -> str:
-        return f"{self.name} | <{self.email_id}> | <{self.phone_number}>"
-    
-@dataclass
-class Team:
-    """Represents a team record from the Team Master Google Sheet."""
-
-    team_id: str
-    name: str
-    is_active: bool
-    contact_email: str
-
-    def __str__(self) -> str:
-        return f"{self.team_id} - {self.name}"
 
 @dataclass
 class Category:
@@ -49,55 +19,60 @@ class Category:
         return self.category
 
 @dataclass
-class SubCategory:
-    """Represents a sub-category record from the Sub-Category Master Google Sheet."""
+class CountryCode:
+    """Represents the country code entity. This entity doesn't exists in Google Sheet."""
 
-    sub_category_id: str
-    category_id: str
-    name: str
-    is_active: bool
-    team_id: str
-    volunteer_category: str
-    help_text: str
-    show_from_date_input: bool
-    show_to_date_input: bool
-    show_coordinator_email_input: bool
-    display_order: int
-    duration_in_days: int
-    dynamic_dropdown_fields: list[str]
-    dynamic_textbox_fields: list[str]
-    secondary_email: str
+    region: str
+    country_code: int
 
     def __str__(self) -> str:
-        return self.name
+        return f"{self.region} (+{self.country_code})"
 
 @dataclass
-class Program:
-    """Represents a program record from the Program Master Google Sheet."""
+class Log:
+    """Represents a log record from the Logs Google Sheet."""
 
-    program_id: str
-    program_name: str
-    applicable_gender: str
-    category_id: str
-    is_active: bool
-    show_from_date_input: bool
-    show_to_date_input: bool
-    show_coordinator_email_input: bool
-    restriction_details: str
-    help_text: str
-    duration_in_days: int
+    log_id: str
+    ip_address: str
+    message: str
+    timestamp: datetime
+
+    email_id: str | None = None
+    phone_number: str | None = None
+    exception: str | None = None
 
     def __str__(self) -> str:
-        return self.program_name
+        return f"{self.log_id} - {self.email_id} | {self.message} | {self.timestamp}"
 
 @dataclass
-class ProgramToTeamMapping:
-    """Represents a mapping between a program and a team from the Program to Team Mapping Google Sheet."""
+class Parameter:
+    """Represents the parameter entity."""
+    
+    parameter_id: str
+    parameter_name: str
+    parameter_value: str
 
-    program_team_map_id: str
-    program_id: str
-    volunteer_category: str
-    team_id: str
+    def __str__(self) -> str:
+        return f"{self.parameter_name} - {self.parameter_value}"
+
+# @dataclass
+# class Program:
+#     """Represents a program record from the Program Master Google Sheet."""
+
+#     program_id: str
+#     program_name: str
+#     applicable_gender: str
+#     category_id: str
+#     is_active: bool
+#     show_from_date_input: bool
+#     show_to_date_input: bool
+#     show_coordinator_email_input: bool
+#     restriction_details: str
+#     help_text: str
+#     duration_in_days: int
+
+#     def __str__(self) -> str:
+#         return self.program_name
 
 @dataclass
 class ProgramDates:
@@ -113,6 +88,15 @@ class ProgramDates:
     def __str__(self) -> str:
         return f"{self.start_date.strftime("%b %d, %Y")} - {self.end_date.strftime("%b %d, %Y")}"
 
+# @dataclass
+# class ProgramToTeamMapping:
+#     """Represents a mapping between a program and a team from the Program to Team Mapping Google Sheet."""
+
+#     program_team_map_id: str
+#     program_id: str
+#     volunteer_category: str
+#     team_id: str
+
 @dataclass
 class Request:
     """Represents a request record from the Requests Google Sheet."""
@@ -126,7 +110,7 @@ class Request:
     phone_number: str
     volunteer_category: str
     category_id: str # represents the category of the request
-    sub_category_id: str
+    subcategory_id: str
     program_id: str
     from_date: date
     to_date: date
@@ -148,21 +132,6 @@ class Request:
         return f"{self.request_id} - {self.request_type} | {self.name} <{self.email_id}> <{self.phone_number}>"
 
 @dataclass
-class Log:
-    """Represents a log record from the Logs Google Sheet."""
-
-    log_id: str
-    ip_address: str
-    email_id: str
-    phone_number: str
-    message: str
-    exception: str
-    timestamp: datetime
-
-    def __str__(self) -> str:
-        return f"{self.log_id} - {self.email_id} | {self.message} | {self.timestamp}"
-
-@dataclass
 class Setting:
     """Represents a setting record from the Settings Google Sheet."""
 
@@ -175,6 +144,61 @@ class Setting:
         return f"{self.name} = {self.value}"
 
 @dataclass
+class SubCategory:
+    """Represents a sub-category record from the Sub-Category Master Google Sheet."""
+
+    subcategory_id: str
+    category_id: str
+    name: str
+    applicable_gender: str
+    is_active: bool
+    team_id: str
+    volunteer_category: str
+    help_text: str
+    show_from_date_input: bool
+    show_to_date_input: bool
+    show_coordinator_email_input: bool
+    # display_order: int
+    duration_in_days: int
+    dynamic_dropdown_fields: list[str]
+    dynamic_textbox_fields: list[str]
+    secondary_email: str
+
+    def __str__(self) -> str:
+        return self.name
+ 
+@dataclass
+class Team:
+    """Represents a team record from the Team Master Google Sheet."""
+
+    team_id: str
+    name: str
+    is_active: bool
+    contact_email: str
+
+    def __str__(self) -> str:
+        return f"{self.team_id} - {self.name}"
+
+@dataclass
+class Volunteer:
+    """Represents a volunteer record from the Volunteer Google Sheet."""
+
+    visit_id: str
+    person_id: str # !! Need to ask SH about datafield
+    volunteer_id: str
+    name: str
+    gender: str
+    email_id: str
+    phone_number: str
+    country: str
+    volunteer_category: str
+    seva_name: str
+    departure_date: date | None = None
+
+    def __str__(self) -> str:
+        return f"{self.name} | <{self.email_id}> | <{self.phone_number}>"
+
+@dataclass
 class VolunteerCategory:
     """Represents a volunteer category record from the Requests Google Sheet."""
 
@@ -184,24 +208,3 @@ class VolunteerCategory:
 
     def __str__(self) -> str:
         return f"{self.volunteer_category_id} - {self.name}"
-
-@dataclass
-class Parameter:
-    """Represents the parameter entity."""
-    
-    parameter_id: str
-    parameter_name: str
-    parameter_value: str
-
-    def __str__(self) -> str:
-        return f"{self.parameter_name} - {self.parameter_value}"
-
-@dataclass
-class CountryCode:
-    """Represents the country code entity. This entity doesn't exists in Google Sheet."""
-
-    region: str
-    country_code: int
-
-    def __str__(self) -> str:
-        return f"{self.region} (+{self.country_code})"

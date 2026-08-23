@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from datetime import date, datetime
+from typing import Any
+
+import requests
 import random
 import string
-from typing import Any
 
 import phonenumbers
 from phonenumbers import NumberParseException
@@ -201,3 +203,16 @@ def get_setting(key: str, default: Any = None) -> Any:
     return value
 
 # endregion
+
+def get_client_ip() -> str:
+    """Return the public IP address or 'unknown' if unavailable."""
+
+    try:
+        response = requests.get(
+            "https://api.ipify.org?format=json",
+            timeout=3,
+        )
+        response.raise_for_status()
+        return response.json()["ip"]
+    except requests.RequestException:
+        return "unknown"
