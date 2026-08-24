@@ -12,16 +12,6 @@ import time
 from entities import Log, Request, SubCategory
 from repository import CategoryRepository, LogRepository, ParameterRepository, RequestRepository, SettingRepository, SubCategoryRepository, TeamRepository, VolunteerCategoryRepository, VolunteerRepository
 
-category_repo = CategoryRepository()
-log_repo = LogRepository()
-parameter_repo = ParameterRepository()
-request_repo = RequestRepository()
-setting_repo = SettingRepository()
-subcategory_repo = SubCategoryRepository()
-team_repo = TeamRepository()
-vol_cat_repo = VolunteerCategoryRepository()
-volunteer_repo = VolunteerRepository()
-
 if "volunteer_identified" in st.session_state and st.session_state["volunteer_identified"]:
     st.session_state["state"] = "Form"
 
@@ -49,6 +39,8 @@ def show_volunteer_email_identification() -> None:
     """Render the Volunteer identification flow."""
     # st.header("👤 Volunteer Identification")
 
+    volunteer_repo = VolunteerRepository()
+
     required_label("📧 Email ID")
     email = st.text_input(
         "",
@@ -72,6 +64,8 @@ def show_volunteer_email_identification() -> None:
                 volunteer = st.session_state["volunteer"]
 
                 # Log the identification success
+                log_repo = LogRepository()
+
                 now: datetime = datetime.now()
                 log: Log = Log(
                     log_id = f"L-{now.strftime("%y%m%d-%H%M%S")}",
@@ -91,6 +85,8 @@ def show_volunteer_email_identification() -> None:
         st.error("❌ Email ID does not exist in the database.")
 
         # Log the identification failure
+        log_repo = LogRepository()
+
         now: datetime = datetime.now()
         log: Log = Log(
             log_id = f"L-{now.strftime("%y%m%d-%H%M%S")}",
@@ -108,6 +104,9 @@ def show_forgot_email_button() -> None:
 
 def show_volunteer_phone_identification() -> None:
     """Render the phone identification flow."""
+    setting_repo = SettingRepository()
+    volunteer_repo = VolunteerRepository()
+
     country_codes = utils.get_country_code_map()
     default_country_code_index = next(
                                         (
@@ -146,10 +145,12 @@ def show_volunteer_phone_identification() -> None:
         if volunteer is None or return_msg:
             st.error("❌ Phone number does not exist in the database.")
 
-            warning = setting_repo.get_by_key("VOLUNTEER_IDENTIFICATION_MSG")
+            warning = setting_repo.get_by_key("REACH_OUT_TO_ADD_CREDENTIALS_FORM_MSG")
             st.warning(f"⚠️ {warning.value}")
 
             # Log the identification failure
+            log_repo = LogRepository()
+
             now: datetime = datetime.now()
             log: Log = Log(
                 log_id = f"L-{now.strftime("%y%m%d-%H%M%S")}",
@@ -171,6 +172,8 @@ def show_volunteer_phone_identification() -> None:
         st.session_state["volunteer_identified"] = True
 
         # Log the identification success
+        log_repo = LogRepository()
+
         now: datetime = datetime.now()
         log: Log = Log(
             log_id = f"L-{now.strftime("%y%m%d-%H%M%S")}",
@@ -205,81 +208,87 @@ def show_volunteer_details() -> None:
     with col2:
         st.write(f"**Volunteer Category:** {volunteer.volunteer_category}") 
 
-def show_category_selection() -> None:
+def show_category_selection(col) -> None:
     """Render the category selection flow."""
-    volunteer = st.session_state.get("volunteer")
-    if not volunteer:
-        st.error("Volunteer not identified.")
-        return
+    with col:
+        volunteer = st.session_state.get("volunteer")
+        if not volunteer:
+            st.error("Volunteer not identified.")
+            return
 
-    categories = category_repo.get_active_categories()
-    category_options = {category.category: category for category in categories}
+        category_repo = CategoryRepository()
 
-    required_label("📌 I want to reach out to:")
-    input_category_name = st.selectbox(
-        "", # ** No longer relevant
-        list(category_options.keys()),
-        index=None,
-        key="input_category_name",
-        label_visibility="collapsed",
-        placeholder="Select Category",
-    )
+        categories = category_repo.get_active_categories()
+        category_options = {category.category: category for category in categories}
 
-    if (input_category_name is not None) and (input_category_name in category_options):
-        input_category = category_options[input_category_name]
-        st.session_state["input_category"] = input_category
-        return
+        required_label("📌 I want to reach out to:")
+        input_category_name = st.selectbox(
+            "", # ** No longer relevant
+            list(category_options.keys()),
+            index=None,
+            key="input_category_name",
+            label_visibility="collapsed",
+            placeholder="Select Category",
+        )
 
-    st.session_state.pop("input_category", None)
+        if (input_category_name is not None) and (input_category_name in category_options):
+            input_category = category_options[input_category_name]
+            st.session_state["input_category"] = input_category
+            return
 
-def show_subcategory_selection() -> None:
+        st.session_state.pop("input_category", None)
+
+def show_subcategory_selection(col) -> None:
     """Render the subcategory selection flow."""
-    volunteer = st.session_state.get("volunteer")
-    if not volunteer:
-        st.error("Volunteer not identified.")
-        return
+    subcategory_repo = SubCategoryRepository()
 
-    # This field is used for form validation. 
-    # I am assuming that if this function will be called only when sub category is required.
-    st.session_state["is_sub_cat_req"] = True
-    
-    input_category = st.session_state.get("input_category")
-    if not input_category:
-        # st.error("Category not selected.")
-        return
+    with col:
+        volunteer = st.session_state.get("volunteer")
+        if not volunteer:
+            st.error("Volunteer not identified.")
+            return
 
-    filtered_subcategories = []
-    if input_category.has_programs:
-        filtered_subcategories = subcategory_repo.get_by_category_and_gender(
-                                            input_category.category_id, 
-                                            volunteer.gender,
-                                            volunteer.volunteer_category)
-    else:
-        filtered_subcategories = subcategory_repo.get_by_category_id_for_vol_cat(
-                                    input_category.category_id, 
-                                    volunteer.volunteer_category)
+        # This field is used for form validation. 
+        # I am assuming that if this function will be called only when sub category is required.
+        st.session_state["is_sub_cat_req"] = True
+        
+        input_category = st.session_state.get("input_category")
+        if not input_category:
+            # st.error("Category not selected.")
+            return
 
-    subcategory_options = {subcategory.name: subcategory for subcategory in filtered_subcategories}
+        filtered_subcategories = []
+        if input_category.has_programs:
+            filtered_subcategories = subcategory_repo.get_by_category_and_gender(
+                                                input_category.category_id, 
+                                                volunteer.gender,
+                                                volunteer.volunteer_category)
+        else:
+            filtered_subcategories = subcategory_repo.get_by_category_id_for_vol_cat(
+                                        input_category.category_id, 
+                                        volunteer.volunteer_category)
 
-    required_label("📌 Sub Category")
-    input_subcategory_name = st.selectbox(
-        "", # ** No longer relevant
-        list(subcategory_options.keys()),
-        index = 0 if len(list(subcategory_options.keys())) == 1 else None, # Preselect if only 1 option is there
-        key = "input_subcategory_name",
-        label_visibility = "collapsed",
-        placeholder = "Select Sub Category"
-    )
+        subcategory_options = {subcategory.name: subcategory for subcategory in filtered_subcategories}
 
-    if (input_subcategory_name is not None) and (input_subcategory_name in subcategory_options):
-        input_subcategory = subcategory_options[input_subcategory_name]
-        st.session_state["input_subcategory"] = input_subcategory
+        required_label("📌 Sub Category")
+        input_subcategory_name = st.selectbox(
+            "", # ** No longer relevant
+            list(subcategory_options.keys()),
+            index = 0 if len(list(subcategory_options.keys())) == 1 else None, # Preselect if only 1 option is there
+            key = "input_subcategory_name",
+            label_visibility = "collapsed",
+            placeholder = "Select Sub Category"
+        )
 
-        show_help_text(input_subcategory.help_text)
+        if (input_subcategory_name is not None) and (input_subcategory_name in subcategory_options):
+            input_subcategory = subcategory_options[input_subcategory_name]
+            st.session_state["input_subcategory"] = input_subcategory
 
-        return
+            show_help_text(input_subcategory.help_text)
 
-    st.session_state.pop("input_subcategory", None)
+            return
+
+        st.session_state.pop("input_subcategory", None)
 
 def render_dynamic_dropdowns(sub_cat: SubCategory) -> None:
     dynamic_dropdowns = []
@@ -293,6 +302,8 @@ def render_dynamic_dropdowns(sub_cat: SubCategory) -> None:
     st.session_state["dynamic_dropdowns"] = dynamic_dropdowns
 
     col1, col2 = st.columns(2)
+
+    parameter_repo = ParameterRepository()
 
     cur_col = col1
     for field in dynamic_dropdowns:
@@ -381,6 +392,9 @@ def show_program_dates_selection() -> None:
     if not input_subcategory:
         # st.error("Program not selected.")
         return
+
+    subcategory_repo = SubCategoryRepository()
+    setting_repo = SettingRepository()
 
     # This field is used for form validation. 
     # I am assuming that if this function will be called only when program date is required.
@@ -617,6 +631,8 @@ def show_submit_button():
     time.sleep(10) # without delay appscript gets confused about whether request, or log table is modified
 
     # Log the request generation success
+    log_repo = LogRepository()
+
     now: datetime = datetime.now()
     log: Log = Log(
         log_id = f"L-{now.strftime("%y%m%d-%H%M%S")}",
@@ -655,12 +671,14 @@ def validate_required(value: Any, error_message: str) -> bool:
     return True
 
 def save_record():
+    request_repo = RequestRepository()
+    vol_cat_repo = VolunteerCategoryRepository()
+
     volunteer = st.session_state["volunteer"]
     vol_cat = vol_cat_repo.get_by_id(volunteer.volunteer_category)
                                            
     category = st.session_state["input_category"]
     subcategory = st.session_state.get("input_subcategory", None)
-    program = st.session_state.get("input_program", None)
 
     from_date = None
     to_date = None
@@ -728,7 +746,6 @@ def save_record():
         volunteer_category = volunteer.volunteer_category, # !! Need to ask if the code or full label should go here
         category_id= category.category_id,
         subcategory_id = subcategory.subcategory_id if subcategory != None else "",
-        program_id = program.program_id if program != None else "",
         from_date = from_date,
         to_date = to_date,
         description = description,
@@ -745,6 +762,44 @@ def save_record():
     request_repo.write_to_sheet(req)
 
     return req
+
+def reset_form():
+    """
+    Resets the form, depending on the mode of application
+    """
+    
+    mode = utils.get_setting("mode")
+    if mode == "Development":
+        st.session_state["state"] = "Form"
+
+    else:
+        st.session_state.pop("state", None)
+
+        st.session_state.pop("forgot_email_clicked", None)
+        st.session_state.pop("volunteer", None)
+        st.session_state.pop("volunteer_identified", None)
+
+    st.session_state.pop("input_category", None)
+    st.session_state.pop("input_subcategory", None)
+    st.session_state.pop("input_program_date", None)
+    st.session_state.pop("input_form_date", None)
+    st.session_state.pop("input_to_date", None)
+    st.session_state.pop("input_coordinator_email", None)
+    st.session_state.pop("description", None)
+
+    dynamic_dropdowns = st.session_state.get("dynamic_dropdowns", None)
+    if dynamic_dropdowns:
+        for field in dynamic_dropdowns:
+            st.session_state.pop(field["key_name"], None)
+    st.session_state.pop("dynamic_dropdowns", None)
+
+    dynamic_textbox = st.session_state.get("dynamic_textbox", None)
+    if dynamic_textbox:
+        for field in dynamic_textbox:
+            st.session_state.pop(field["key_name"], None)
+    st.session_state.pop("dynamic_textbox", None)
+
+    st.rerun()
 
 def reset_req_flags():
     """
@@ -831,10 +886,12 @@ if __name__ == "__main__":
             if volunteer:
                 show_volunteer_details()
 
-                show_category_selection()
+                col1, col2 = st.columns(2)
+
+                show_category_selection(col1)
                 input_category = st.session_state.get("input_category")
                 if input_category != None:
-                    show_subcategory_selection()
+                    show_subcategory_selection(col2)
 
                 input_subcategory = st.session_state.get("input_subcategory")
                 if input_subcategory != None:
@@ -862,6 +919,9 @@ if __name__ == "__main__":
                 show_description_box()
                 req = show_submit_button()
 
+                if req:
+                    reset_form()
+
                 # send emails
                 # if req:
                 #     send_mail_requester(req)
@@ -873,6 +933,8 @@ if __name__ == "__main__":
     except Exception as e: 
         # Log the error
         volunteer = st.session_state.get("volunteer")
+
+        log_repo = LogRepository()
 
         now: datetime = datetime.now()
         log: Log = Log(

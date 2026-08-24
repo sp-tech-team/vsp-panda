@@ -1157,7 +1157,7 @@ class VolunteerRepository:
         normalized_email = normalize_email(email)
 
         if normalized_email is None:
-            return None
+            return None, ""
 
         matches = [
             volunteer
@@ -1182,7 +1182,7 @@ class VolunteerRepository:
         normalized_input = normalize_phone_number(phone_number, region)
 
         if normalized_input is None:
-            return None
+            return None, ""
 
         matches = [
             volunteer

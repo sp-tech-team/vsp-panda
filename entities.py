@@ -111,7 +111,6 @@ class Request:
     volunteer_category: str
     category_id: str # represents the category of the request
     subcategory_id: str
-    program_id: str
     from_date: date
     to_date: date
     description: str
