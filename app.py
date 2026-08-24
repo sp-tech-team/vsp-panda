@@ -5,6 +5,8 @@ from typing import Any
 
 import streamlit as st
 import threading
+
+import streamlit.components.v1 as components
 import utils
 import re
 import time
@@ -33,6 +35,21 @@ def load_css() -> None:
     st.markdown(
         f"<style>{css}</style>",
         unsafe_allow_html=True,
+    )
+
+def load_js() -> None:
+    """Load application JS."""
+
+    js_path = Path(__file__).parent / "js" / "main.js"
+    js = js_path.read_text(encoding="utf-8")
+
+    components.html(
+        f"""
+        <script>
+            {js}
+        </script>
+        """,
+        height=0,
     )
 
 def show_volunteer_email_identification() -> None:
@@ -871,6 +888,55 @@ def required_label(label: str) -> None:
         unsafe_allow_html=True,
     )
 
+@st.dialog(
+    "Request Registered",
+    dismissible=False,
+)
+def show_success_popup(request_id):
+    st.markdown(
+        f"""
+        <div style="text-align: center; padding: 10px 0 20px 0;">
+            <div style="font-size: 42px;">✅</div>
+            <div style="font-size: 18px; font-weight: 600; margin-top: 15px;">
+                Your request has been successfully registered.
+            </div>
+            <div style="font-size: 16px; font-weight: 600; margin-top: 10px;">
+                Your request ID is <u><strong>{request_id}</strong></u>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        """
+        <style>
+        div[data-testid="stDialog"] div[data-testid="stButton"] {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+        }
+
+        div[data-testid="stDialog"] div[data-testid="stButton"] button {
+            background-color: #28a745;
+            border-color: #28a745;
+            color: white;
+            width: 450px;
+        }
+
+        div[data-testid="stDialog"] div[data-testid="stButton"] button:hover {
+            background-color: #218838;
+            border-color: #218838;
+            color: white;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    if st.button("OK", type="primary"):
+        st.session_state["reset_form_requested"] = True
+        st.rerun()
 # def send_mail_requester(request: Request) -> None:
 #     """Send the request notification to the requester."""
 
@@ -934,6 +1000,8 @@ if __name__ == "__main__":
                 show_volunteer_phone_identification()
 
         elif st.session_state.get("state") == "Form":
+            load_js() # For disabling the form when submitted
+
             volunteer = st.session_state.get("volunteer")
             if volunteer:
                 show_volunteer_details()
@@ -962,17 +1030,17 @@ if __name__ == "__main__":
                     if input_subcategory.show_coordinator_email_input:
                         show_coordinator_email_input()
 
-                input_program = st.session_state.get("input_program")
-                if input_program != None:
+                # input_program = st.session_state.get("input_program")
+                # if input_program != None:
 
-                    if input_program.show_coordinator_email_input:
-                        show_coordinator_email_input()
+                #     if input_program.show_coordinator_email_input:
+                #         show_coordinator_email_input()
 
                 show_description_box()
                 req = show_submit_button()
 
                 if req:
-                    reset_form()
+                    show_success_popup(req.request_id)
 
                 # send emails
                 # if req:
