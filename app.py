@@ -21,7 +21,7 @@ if "volunteer_identified" in st.session_state and st.session_state["volunteer_id
     st.session_state["is_program_selection"] = False
     st.session_state["is_program_date_req"] = False
     st.session_state["is_coordinator_email_req"] = False
-elif "state" not in st.session_state:
+elif "state" not in st.session_state or not st.session_state["state"]:
     st.session_state["state"] = "Identification"
 
 def load_css() -> None:
@@ -221,6 +221,14 @@ def show_category_selection(col) -> None:
         categories = category_repo.get_active_categories()
         category_options = {category.category: category for category in categories}
 
+        # To debug what is there in the session state
+        # st.write("CATEGORY STATE:", {
+        #     k: v for k, v in st.session_state.items()
+        #     if "categor" in k.lower()
+        # })
+
+
+
         required_label("📌 I want to reach out to:")
         input_category_name = st.selectbox(
             "", # ** No longer relevant
@@ -237,6 +245,7 @@ def show_category_selection(col) -> None:
             return
 
         st.session_state.pop("input_category", None)
+        st.session_state.pop("input_category_name", None)
 
 def show_subcategory_selection(col) -> None:
     """Render the subcategory selection flow."""
@@ -289,6 +298,7 @@ def show_subcategory_selection(col) -> None:
             return
 
         st.session_state.pop("input_subcategory", None)
+        st.session_state.pop("input_subcategory_name", None)
 
 def render_dynamic_dropdowns(sub_cat: SubCategory) -> None:
     dynamic_dropdowns = []
@@ -427,6 +437,7 @@ def show_program_dates_selection() -> None:
         st.session_state["input_program_date"] = input_date
         return
 
+    st.session_state.pop("input_date", None)
     st.session_state.pop("input_program_date", None)
 
 def show_custom_date_fields(subcategory: SubCategory) -> None:
@@ -462,11 +473,13 @@ def show_custom_date_fields(subcategory: SubCategory) -> None:
     if from_date:
         st.session_state["input_from_date"] = from_date
     else:
+        st.session_state.pop("from_date", None)
         st.session_state.pop("input_from_date", None)
 
     if to_date:
         st.session_state["input_to_date"] = to_date
     else:
+        st.session_state.pop("to_date", None)
         st.session_state.pop("input_to_date", None)
 
 def show_coordinator_email_input() -> None:
@@ -496,10 +509,17 @@ def show_coordinator_email_input() -> None:
             st.session_state["input_coordinator_email"] = normalized    
             return
 
+    st.session_state.pop("coordinator_email", None)
     st.session_state.pop("input_coordinator_email", None)
     
 def show_description_box() -> None:
     """Render the description box."""
+    # To debug what is there in the session state
+    # st.write("DESCRIPTION STATE:", {
+    #     k: v for k, v in st.session_state.items()
+    #     if "description" in k.lower()
+    # })
+
     required_label("📝 Reason for your request")
     description = st.text_area(
         "",
@@ -513,6 +533,7 @@ def show_description_box() -> None:
         st.session_state["input_description"] = description
         return
 
+    st.session_state.pop("description", None)
     st.session_state.pop("input_description", None)
 
 def show_submit_button():
@@ -763,42 +784,69 @@ def save_record():
 
     return req
 
-def reset_form():
+def clear_form_state():
     """
-    Resets the form, depending on the mode of application
+    Clears all form-related session state.
+    This must be called BEFORE the widgets are rendered.
     """
-    
+
     mode = utils.get_setting("mode")
+
     if mode == "Development":
         st.session_state["state"] = "Form"
-
     else:
-        st.session_state.pop("state", None)
+        st.session_state["state"] = "Identification"
+        st.session_state["forgot_email_clicked"] = False
+        st.session_state["volunteer"] = None
+        st.session_state["volunteer_identified"] = False
 
-        st.session_state.pop("forgot_email_clicked", None)
-        st.session_state.pop("volunteer", None)
-        st.session_state.pop("volunteer_identified", None)
+    # Static fields
+    for key in [
+        "email_id",
+        "country_code",
+        "phone_number",
+        "input_category_name",
+        "input_category",
+        "input_subcategory_name",
+        "input_subcategory",
+        "input_program",
+        "coordinator_email",
+        "input_coordinator_email",
+        "description",
+        "input_description",
+    ]:
+        st.session_state[key] = ""
 
-    st.session_state.pop("input_category", None)
-    st.session_state.pop("input_subcategory", None)
-    st.session_state.pop("input_program_date", None)
-    st.session_state.pop("input_form_date", None)
-    st.session_state.pop("input_to_date", None)
-    st.session_state.pop("input_coordinator_email", None)
-    st.session_state.pop("description", None)
+    for key in [        
+        "input_date",
+        "input_program_date",
+        "from_date",
+        "input_form_date",
+        "to_date",
+        "input_to_date",
+    ]:
+        st.session_state.pop(key, None)
 
-    dynamic_dropdowns = st.session_state.get("dynamic_dropdowns", None)
+    # Dynamic dropdowns
+    dynamic_dropdowns = st.session_state.pop("dynamic_dropdowns", None)
+
     if dynamic_dropdowns:
         for field in dynamic_dropdowns:
             st.session_state.pop(field["key_name"], None)
-    st.session_state.pop("dynamic_dropdowns", None)
 
-    dynamic_textbox = st.session_state.get("dynamic_textbox", None)
+    # Dynamic textboxes
+    dynamic_textbox = st.session_state.pop("dynamic_textbox", None)
+
     if dynamic_textbox:
         for field in dynamic_textbox:
             st.session_state.pop(field["key_name"], None)
-    st.session_state.pop("dynamic_textbox", None)
 
+def reset_form():
+    """
+    Requests a form reset.
+    The actual clearing happens at the beginning of the next Streamlit run.
+    """
+    st.session_state["reset_form_requested"] = True
     st.rerun()
 
 def reset_req_flags():
@@ -872,6 +920,10 @@ if __name__ == "__main__":
         st.title("🔹 Raise a Request")
     
         reset_req_flags()
+
+        # Clear widget state BEFORE creating any widgets
+        if st.session_state.pop("reset_form_requested", False):
+            clear_form_state()
 
         load_css()
         if st.session_state.get("state") == "Identification":
