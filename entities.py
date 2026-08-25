@@ -156,6 +156,7 @@ class SubCategory:
     help_text: str
     show_from_date_input: bool
     show_to_date_input: bool
+    show_health_related_bool_input: bool
     show_coordinator_email_input: bool
     # display_order: int
     duration_in_days: int

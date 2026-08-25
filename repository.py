@@ -120,6 +120,7 @@ SUB_CATEGORIES_MASTER_HEADER = (
     SUB_CATEGORY_HELP_TEXT,
     SUB_CATEGORY_USER_INPUT_FROM_DATE,
     SUB_CATEGORY_USER_INPUT_TO_DATE,
+    SUB_CATEGORY_SHOW_HEALTH_RELATED_BOOL,
     SUB_CATEGORY_SHOW_COORDINATOR_EMAIL,
     # SUB_CATEGORY_DISPLAY_ORDER,
     SUB_CATEGORY_DURATION_IN_DAYS,
@@ -342,6 +343,7 @@ def _row_to_subcategory_entity(row: dict[str, Any]) -> SubCategory:
         help_text = str(row.get(SUB_CATEGORY_HELP_TEXT, "")).strip(),
         show_from_date_input = str(row.get(SUB_CATEGORY_USER_INPUT_FROM_DATE, "")).strip().lower() == "true",
         show_to_date_input = str(row.get(SUB_CATEGORY_USER_INPUT_TO_DATE, "")).strip().lower() == "true",
+        show_health_related_bool_input = str(row.get(SUB_CATEGORY_SHOW_HEALTH_RELATED_BOOL, "")).strip().lower() == "true",
         show_coordinator_email_input = str(row.get(SUB_CATEGORY_SHOW_COORDINATOR_EMAIL, "")).strip().lower() == "true",
         # display_order = int(str(row.get(SUB_CATEGORY_DISPLAY_ORDER, 0)).strip() or 0),
         duration_in_days = int(str(row.get(SUB_CATEGORY_DURATION_IN_DAYS, 0)).strip() or 0),
@@ -391,37 +393,67 @@ def _row_to_volunteer_entity(row: dict[str, Any]) -> Volunteer:
 
 
 
-cacheRetention = utils.get_setting("cacheRetention")
+allCacheRetention = utils.get_setting("allCacheRetention")
+if not allCacheRetention or str(allCacheRetention).isdigit():
+    allCacheRetention = 1800 # default value if nothing is found
 
-required_tbl_list = [
-    "categories", 
-    "parameters", 
-    "programs", 
-    "program_dates", 
-    "program_team_mapping", 
-    "settings", 
-    "subcategories",
-    "teams", 
-    "volunteer_categories"
-    "volunteers", 
-]
+# required_tbl_list = [
+#     "categories", 
+#     "parameters", 
+#     "programs", 
+#     "program_dates", 
+#     "program_team_mapping", 
+#     "settings", 
+#     "subcategories",
+#     "teams", 
+#     "volunteer_categories"
+#     "volunteers", 
+# ]
 
-for tbl in required_tbl_list:
-    if tbl not in cacheRetention.keys():
-        cacheRetention[tbl] = 60 * 5 # if no config is given, make 5 min the default
+# for tbl in required_tbl_list:
+#     if tbl not in cacheRetention.keys():
+#         cacheRetention[tbl] = 60 * 5 # if no config is given, make 5 min the default
 
 
 # region Load data from Google Sheets into entities
 
-@st.cache_data(ttl=cacheRetention["categories"], show_spinner=False)
+@st.cache_data(ttl=allCacheRetention, show_spinner=False)
+def fetch_all_sheet_data() -> dict[str, list[list[str]]]:
+    """
+    Fetches raw data for ALL worksheets in 1 single API call.
+    """
+    sheet = get_google_sheet()
+    
+    # List all tab names you want to load
+    target_tabs = [
+        CATEGORIES_WORKSHEET, 
+        PARAMETERS_WORKSHEET, 
+        PROGRAM_DATES_WORKSHEET,
+        SETTINGS_WORKSHEET,
+        SUB_CATEGORIES_WORKSHEET,
+        TEAMS_WORKSHEET,
+        VOLUNTEER_CATEGORIES_WORKSHEET,
+        VOLUNTEERS_WORKSHEET
+    ]
+    
+    # Batch call - 1 API Hit for all tabs combined!
+    res = sheet.values_batch_get(target_tabs)
+    
+    data_by_tab = {}
+    for value_range in res.get("valueRanges", []):
+        # Extract tab name from range format "Categories!A1:Z100"
+        tab_name = value_range.get("range", "").split("!")[0].strip("'")
+        data_by_tab[tab_name] = value_range.get("values", [])
+        
+    return data_by_tab
+
 def load_categories() -> list[Category]:
     """
     Load Category records from Google Sheets.
     """
-    
-    sheet = get_google_sheet()
-    worksheet = sheet.worksheet(CATEGORIES_WORKSHEET) # ** Need to check if this is working
-    values = worksheet.get_all_values()
+
+    all_data = fetch_all_sheet_data()
+    values = all_data.get(CATEGORIES_WORKSHEET, [])
 
     if not values:
         return ()
@@ -444,15 +476,13 @@ def load_categories() -> list[Category]:
 
     return categories
 
-@st.cache_data(ttl=cacheRetention["parameters"], show_spinner=False)
 def load_parameters() -> tuple[Parameter, ...]:
     """
     Load Parameter records from Google Sheets.
     """
-    
-    sheet = get_google_sheet()
-    worksheet = sheet.worksheet(PARAMETERS_WORKSHEET) # ** Need to check if this is working
-    values = worksheet.get_all_values()
+
+    all_data = fetch_all_sheet_data()
+    values = all_data.get(PARAMETERS_WORKSHEET, [])
 
     if not values:
         return ()
@@ -473,15 +503,14 @@ def load_parameters() -> tuple[Parameter, ...]:
 
     return tuple(parameters)
 
-# @st.cache_data(ttl=cacheRetention["programs"], show_spinner=False)
+#
 # def load_programs() -> tuple[Program, ...]:
 #     """
 #     Load Program records from Google Sheets.
 #     """
     
-#     sheet = get_google_sheet()
-#     worksheet = sheet.worksheet(PROGRAMS_WORKSHEET) # ** Need to check if this is working
-#     values = worksheet.get_all_values()
+#     all_data = fetch_all_sheet_data()
+#     values = all_data.get(PROGRAMS_WORKSHEET, [])
 
 #     if not values:
 #         return ()
@@ -502,15 +531,13 @@ def load_parameters() -> tuple[Parameter, ...]:
 
 #     return tuple(programs)
 
-@st.cache_data(ttl=cacheRetention["program_dates"], show_spinner=False)
 def load_program_dates() -> tuple[ProgramDates, ...]:
     """
     Load Program Dates records from Google Sheets.
     """
-    
-    sheet = get_google_sheet()
-    worksheet = sheet.worksheet(PROGRAM_DATES_WORKSHEET) # ** Need to check if this is working
-    values = worksheet.get_all_values()
+
+    all_data = fetch_all_sheet_data()
+    values = all_data.get(PROGRAM_DATES_WORKSHEET, [])
 
     if not values:
         return ()
@@ -531,13 +558,15 @@ def load_program_dates() -> tuple[ProgramDates, ...]:
 
     return tuple(programs)
 
-# @st.cache_data(ttl=cacheRetention["program_team_mapping"], show_spinner=False)
+#
 # def load_program_team_mapping() -> tuple[ProgramToTeamMapping, ...]:
 #     """
 #     Load Program Team Mapping records from Google Sheets.
 #     """
     
-#     sheet = get_google_sheet()
+#     if sheet == None:
+#         sheet = get_google_sheet()
+
 #     worksheet = sheet.worksheet(PROGRAM_TEAM_MAPPING_WORKSHEET) # ** Need to check if this is working
 #     values = worksheet.get_all_values()
 
@@ -564,7 +593,7 @@ def load_request_ids() -> tuple[str, ...]:
     """
     Load Request IDs from Request records from Google Sheets.
     """
-    
+
     sheet = get_google_sheet()
     worksheet = sheet.worksheet(REQUESTS_WORKSHEET) # ** Need to check if this is working
     values = worksheet.get_all_values()
@@ -588,15 +617,13 @@ def load_request_ids() -> tuple[str, ...]:
 
     return tuple(request_ids)
 
-@st.cache_data(ttl=cacheRetention["settings"], show_spinner=False)
 def load_settings() -> tuple[Setting, ...]:
     """
     Load Settings records from Google Sheets.
     """
-    
-    sheet = get_google_sheet()
-    worksheet = sheet.worksheet(SETTINGS_WORKSHEET) # ** Need to check if this is working
-    values = worksheet.get_all_values()
+
+    all_data = fetch_all_sheet_data()
+    values = all_data.get(SETTINGS_WORKSHEET, [])
 
     if not values:
         return ()
@@ -617,15 +644,13 @@ def load_settings() -> tuple[Setting, ...]:
 
     return tuple(settings)
 
-@st.cache_data(ttl=cacheRetention["subcategories"], show_spinner=False)
 def load_subcategories() -> list[SubCategory]:
     """
     Load Sub Category records from Google Sheets.
     """
-    
-    sheet = get_google_sheet()
-    worksheet = sheet.worksheet(SUB_CATEGORIES_WORKSHEET) # ** Need to check if this is working
-    values = worksheet.get_all_values()
+
+    all_data = fetch_all_sheet_data()
+    values = all_data.get(SUB_CATEGORIES_WORKSHEET, [])
 
     if not values:
         return ()
@@ -648,15 +673,13 @@ def load_subcategories() -> list[SubCategory]:
 
     return subcategories
 
-@st.cache_data(ttl=cacheRetention["teams"], show_spinner=False)
 def load_teams() -> tuple[Team, ...]:
     """
     Load Team Master records from Google Sheets.
     """
-    
-    sheet = get_google_sheet()
-    worksheet = sheet.worksheet(TEAMS_WORKSHEET) # ** Need to check if this is working
-    values = worksheet.get_all_values()
+
+    all_data = fetch_all_sheet_data()
+    values = all_data.get(TEAMS_WORKSHEET, [])
 
     if not values:
         return ()
@@ -677,15 +700,13 @@ def load_teams() -> tuple[Team, ...]:
 
     return tuple(teams)
 
-@st.cache_data(ttl=cacheRetention["volunteer_categories"], show_spinner=False)
 def load_volunteer_categories() -> tuple[VolunteerCategory, ...]:
     """
     Load Volunteer Category records from Google Sheets.
     """
-    
-    sheet = get_google_sheet()
-    worksheet = sheet.worksheet(VOLUNTEER_CATEGORIES_WORKSHEET) # ** Need to check if this is working
-    values = worksheet.get_all_values()
+
+    all_data = fetch_all_sheet_data()
+    values = all_data.get(VOLUNTEER_CATEGORIES_WORKSHEET, [])
 
     if not values:
         return ()
@@ -706,7 +727,6 @@ def load_volunteer_categories() -> tuple[VolunteerCategory, ...]:
 
     return tuple(volunteer_categories)
 
-@st.cache_data(ttl=cacheRetention["volunteers"], show_spinner=False)
 def load_volunteers() -> tuple[Volunteer, ...]:
     """
     Load Volunteer records from Google Sheets.
@@ -714,10 +734,9 @@ def load_volunteers() -> tuple[Volunteer, ...]:
     The Sheet row order is preserved because it is required for the
     fallback rule when matching records have no departure date.
     """
-    
-    sheet = get_google_sheet()
-    worksheet = sheet.worksheet(VOLUNTEERS_WORKSHEET) # ** Need to check if this is working
-    values = worksheet.get_all_values()
+
+    all_data = fetch_all_sheet_data()
+    values = all_data.get(VOLUNTEERS_WORKSHEET, [])
 
     if not values:
         return ()

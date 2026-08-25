@@ -528,7 +528,33 @@ def show_coordinator_email_input() -> None:
 
     st.session_state.pop("coordinator_email", None)
     st.session_state.pop("input_coordinator_email", None)
-    
+
+def show_health_related_bool() -> None:
+    """Render the health-related Yes/No input and store the value in session state."""
+
+    # This field is required for form validation.
+    st.session_state["is_health_related_bool_req"] = True
+
+    required_label("🩺 Is it health related?")
+
+    health_related = st.radio(
+        "",
+        options=["Yes", "No"],
+        index=1,
+        key="health_related",
+        label_visibility="collapsed",
+    )
+
+    # No selection yet
+    if health_related is None:
+        st.session_state.pop("input_health_related", None)
+        return
+
+    # Store as an actual boolean
+    st.session_state["input_health_related"] = (
+        health_related == "Yes"
+    )
+
 def show_description_box() -> None:
     """Render the description box."""
     # To debug what is there in the session state
@@ -737,6 +763,8 @@ def save_record():
             to_date = st.session_state["input_to_date"]
         if subcategory.show_coordinator_email_input:
             coordinator_email = st.session_state["input_coordinator_email"]
+        if subcategory.show_health_related_bool_input:
+            is_health_related = st.session_state["input_health_related"]
 
         team_id = subcategory.team_id
 
@@ -770,6 +798,9 @@ def save_record():
 
     if coordinator_email and not coordinator_email.isspace():
         description += f"\nSeva Coordinator Mail ID: {coordinator_email}"
+
+    if is_health_related:
+        description += f"\n#Health"
 
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     existing_request_ids = request_repo.get_existing_ids()
@@ -826,7 +857,7 @@ def clear_form_state():
         "input_category",
         "input_subcategory_name",
         "input_subcategory",
-        "input_program",
+        "input_health_related",
         "coordinator_email",
         "input_coordinator_email",
         "description",
@@ -872,10 +903,10 @@ def reset_req_flags():
     """
 
     st.session_state.pop("is_sub_cat_req", None)
-    st.session_state.pop("is_program_req", None)
     st.session_state.pop("is_program_date_req", None)
     st.session_state.pop("is_from_date_req", None)
     st.session_state.pop("is_to_date_req", None)
+    st.session_state.pop("is_health_related_bool_req", None)
     st.session_state.pop("is_coordinator_email_req", None)
 
 def required_label(label: str) -> None:
@@ -1026,9 +1057,11 @@ if __name__ == "__main__":
                     else:
                         show_custom_date_fields(input_subcategory)
 
-
                     if input_subcategory.show_coordinator_email_input:
                         show_coordinator_email_input()
+
+                    if input_subcategory.show_health_related_bool_input:
+                        show_health_related_bool()
 
                 # input_program = st.session_state.get("input_program")
                 # if input_program != None:
