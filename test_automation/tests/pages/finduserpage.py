@@ -14,10 +14,6 @@ class FindUserPage:
             "Enter your email ID"
         )
 
-        self.forgot_email = self.frame.get_by_test_id(
-            "stBaseButton-secondary"
-        )
-
         self.forgot_email = self.frame.get_by_test_id("stBaseButton-secondary")
 
         self.country_code = self.frame.get_by_role(
@@ -38,9 +34,21 @@ class FindUserPage:
         self.counter_msg = self.frame.get_by_text(
             "Please visit counter 23/24 at welcome point for further assistance with your request.")
 
+    def search_user(self, email_scenario):
+        if email_scenario.get('EmailId') is not None:
+            print("Searching by email")
+            self.find_user_by_email(email_scenario['EmailId'])
+
+        if email_scenario.get('PhoneNumber') is not None:
+            self.find_user_by_phn_num(
+                email_scenario['CountryCode'],
+                email_scenario['PhoneNumber']
+            )
+
     def find_user_by_email(self, email_id):
         self.email_input.fill(email_id)
         self.email_input.press("Enter")
+        self.wait_for_locator()
 
     def wait_for_locator(self):
         spinner = self.page.locator("i")
@@ -52,6 +60,7 @@ class FindUserPage:
             raise ValueError("Phone number cannot be None")
 
         if country_code is not None:
+            self.forgot_email.click()
             self.country_code.fill(country_code)
             self.country_code.press("ArrowDown")
             self.country_code.press("Enter")
@@ -59,3 +68,5 @@ class FindUserPage:
 
             self.phn_number.fill(phone_number)
             self.phn_number.press("Enter")
+
+            self.wait_for_locator()

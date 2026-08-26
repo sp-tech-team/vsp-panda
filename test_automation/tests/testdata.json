@@ -20,7 +20,7 @@
         "CountryCode": "in",
         "PhoneNumber": "9123456789",
         "Name": null,
-        "VolunteerCategory": "LTV",
+        "VolunteerCategory": "AV",
         "DepartureDate": null,
         "Category": null,
         "SubCategory": null,
@@ -50,7 +50,7 @@
     "test_user_search_diff_country_code_phn": {
         "EmailId": null,
         "CountryCode": "us",
-        "PhoneNumber": "9652009157",
+        "PhoneNumber": "9987654321",
         "Name": null,
         "VolunteerCategory": "LTV",
         "DepartureDate": null,

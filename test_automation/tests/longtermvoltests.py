@@ -1,9 +1,9 @@
 from playwright.sync_api import sync_playwright, expect
 from pathlib import Path
 import json
-import time
-from datetime import datetime, timedelta
-
+from pages.userdetailspage import UserDetailsPage
+from pages.finduserpage import FindUserPage
+import pytest
 
 json_file = Path(__file__).parent.parent / "tests" / "ltv_testdata.json"
 
@@ -13,151 +13,76 @@ with open(json_file, "r") as f:
 
 # def test_ltv_usrdtl_valid_email(page):
 #     email_scenario = data["test_ltv_usrdtl_valid_email"]
+#     user_dtls_page = UserDetailsPage(page)
+#     find_user_page = FindUserPage(page)
 
-#     expected_name = page.locator("iframe[title=\"streamlitApp\"]").content_frame.get_by_text(
-#         f"Name: {email_scenario['Name']}")
-#     expect(expected_name).to_be_visible()
-#     print(
-#         f"✅ Verified Name: '{email_scenario['Name']}' is displayed correctly.  ")
+#     find_user_page.search_user(email_scenario)
 
-#     expected_volcat = page.locator("iframe[title=\"streamlitApp\"]").content_frame.get_by_text(
-#         f"Volunteer Category: {email_scenario['VolunteerCategory']}")
-#     expect(expected_volcat).to_be_visible()
-#     print(
-#         f"✅ Verified Volunteer Category: '{email_scenario['VolunteerCategory']}' is displayed correctly.  ")
+#     user_name = user_dtls_page.get_user_name(
+#         email_scenario["Name"])
 
-#     expected_deptdate = page.locator("iframe[title=\"streamlitApp\"]").content_frame.get_by_text(
-#         f"Departure Date: {email_scenario['DepartureDate']}")
-#     expect(expected_deptdate).to_be_visible()
-#     print(
-#         f"✅ Verified Departure Date: '{email_scenario['DepartureDate']}' is displayed correctly.  ")
+#     vol_category = user_dtls_page.get_volunteer_category(
+#         email_scenario["VolunteerCategory"])
+
+#     dept_date = user_dtls_page.get_dept_date(
+#         email_scenario["DepartureDate"]
+#     )
+#     expect(user_name).to_be_visible()
+#     expect(vol_category).to_be_visible()
+#     expect(dept_date).to_be_visible()
 
 
 # def test_ltv_usrdtl_valid_phnnum(page):
 #     phn_number_scenario = data["test_ltv_usrdtl_valid_phnnum"]
-#     forgot_email = page.locator(
-#         "iframe[title=\"streamlitApp\"]").content_frame.get_by_test_id("stBaseButton-secondary")
-#     forgot_email.click()
-#     phn_number = page.locator("iframe[title=\"streamlitApp\"]").content_frame.get_by_placeholder(
-#         "Enter phone number without country code")
-#     phn_number.fill(phn_number_scenario['PhoneNumber'])
-#     phn_number.press("Enter")
+#     user_dtls_page = UserDetailsPage(page)
+#     find_user_page = FindUserPage(page)
 
-#     expected_name = page.locator("iframe[title=\"streamlitApp\"]").content_frame.get_by_text(
-#         f"Name: {phn_number_scenario['Name']}")
-#     expect(expected_name).to_be_visible()
-#     print(
-#         f"✅ Verified Name: '{phn_number_scenario['Name']}' is displayed correctly.  ")
+#     find_user_page.search_user(phn_number_scenario)
 
-#     expected_volcat = page.locator("iframe[title=\"streamlitApp\"]").content_frame.get_by_text(
-#         f"Volunteer Category: {phn_number_scenario['VolunteerCategory']}")
-#     expect(expected_volcat).to_be_visible()
-#     print(
-#         f"✅ Verified Volunteer Category: '{phn_number_scenario['VolunteerCategory']}' is displayed correctly.  ")
+#     user_name = user_dtls_page.get_user_name(
+#         phn_number_scenario["Name"])
 
-#     expected_deptdate = page.locator("iframe[title=\"streamlitApp\"]").content_frame.get_by_text(
-#         f"Departure Date: {phn_number_scenario['DepartureDate']}")
-#     expect(expected_deptdate).to_be_visible()
-#     print(
-#         f"✅ Verified Departure Date: '{phn_number_scenario['DepartureDate']}' is displayed correctly.  ")
+#     vol_category = user_dtls_page.get_volunteer_category(
+#         phn_number_scenario["VolunteerCategory"])
 
-
-# def get_date_with_delta(delta_days):
-#     return (
-#         datetime.now() + timedelta(days=int(delta_days))
-#     ).strftime("%d/%m/%Y")
-
-
-# def test_ltv_usrdtl_silence_3day(page):
-
-#     phn_number_scenario = data["test_ltv_usrdtl_silence_3day"]
-
-#     forgot_email = (
-#         page.locator("iframe[title='streamlitApp']")
-#         .content_frame
-#         .get_by_test_id("stBaseButton-secondary")
+#     dept_date = user_dtls_page.get_dept_date(
+#         phn_number_scenario["DepartureDate"]
 #     )
-#     forgot_email.click()
+#     expect(user_name).to_be_visible()
+#     expect(vol_category).to_be_visible()
+#     expect(dept_date).to_be_visible()
 
-#     phn_number = (
-#         page.locator("iframe[title='streamlitApp']")
-#         .content_frame
-#         .get_by_placeholder("Enter phone number without country code")
-#     )
-#     phn_number.fill(phn_number_scenario["PhoneNumber"])
-#     phn_number.press("Enter")
 
-#     cat_dropdown = (
-#         page.locator("iframe[title='streamlitApp']")
-#         .content_frame
-#         .get_by_role("combobox", name="Select Category")
-#     )
-#     cat_dropdown.wait_for(state="visible", timeout=30000)
-#     cat_dropdown.click()
-#     cat_dropdown.fill(phn_number_scenario["Category"])
-#     page.keyboard.press("Enter")
+# @pytest.mark.parametrize(
+#     "scenario_name",
+#     data.keys(),
+#     ids=data.keys()
+# )
+# def test_ltv_usrdtl(page, scenario_name):
 
-#     subcat_dropdown = (
-#         page.locator("iframe[title='streamlitApp']")
-#         .content_frame
-#         .get_by_role("combobox", name="Select Sub Category")
-#     )
-#     subcat_dropdown.wait_for(state="visible", timeout=30000)
-#     subcat_dropdown.click()
-#     subcat_dropdown.fill(phn_number_scenario["SubCategory"])
-#     page.keyboard.press("Enter")
+#     scenario = data[scenario_name]
 
-#     # Date handling
-#     if phn_number_scenario.get("FromDate") is not None:
+#     user_dtls_page = UserDetailsPage(page)
+#     find_user_page = FindUserPage(page)
 
-#         date_value = get_date_with_delta(
-#             phn_number_scenario["FromDate"]
-#         )
+#     find_user_page.search_user(scenario)
+#     user_dtls_page.enter_request(scenario)
 
-#         from_date = (
-#             page.locator("iframe[title='streamlitApp']")
-#             .content_frame
-#             .get_by_test_id("stDateInputField")
-#             .first
-#         )
+#     request_id = user_dtls_page.get_reqid()
+#     print(f"Scenario: {scenario}")
+#     print(f"Request ID: {request_id}")
+#     assert request_id is not None
 
-#         from_date.wait_for(state="visible", timeout=30000)
-#         from_date.click()
-#         from_date.clear()
-#         from_date.fill(date_value)
-#         from_date.press("Tab")
 
-#     if phn_number_scenario.get("ToDate") is not None:
+def test_ltv_usrdtl_1dayvisit(page):
 
-#         final_date = (
-#             int(phn_number_scenario["FromDate"]) + int(phn_number_scenario["ToDate"]))
+    email_scenario = data["test_ltv_usrdtl_exitbrk_exit"]
+    user_dtls_page = UserDetailsPage(page)
+    find_user_page = FindUserPage(page)
 
-#         date_value = get_date_with_delta(final_date)
+    find_user_page.search_user(email_scenario)
+    user_dtls_page.enter_request(email_scenario)
 
-#     to_date = (
-#         page.locator("iframe[title='streamlitApp']")
-#         .content_frame
-#         .get_by_test_id("stDateInputField")
-#         .nth(1)
-#     )
-
-#     to_date.wait_for(state="visible", timeout=30000)
-#     to_date.click()
-#     to_date.clear()
-#     to_date.fill(date_value)
-#     to_date.press("Tab")
-
-#     sevacord_email = page.locator("iframe[title=\"streamlitApp\"]").content_frame.get_by_placeholder(
-#         "Enter your Seva Coordinator")
-#     sevacord_email.click()
-#     sevacord_email.fill(phn_number_scenario["CoordinatorEmail"])
-#     sevacord_email.press("Enter")
-
-#     req_reason = page.locator("iframe[title=\"streamlitApp\"]").content_frame.get_by_placeholder(
-#         "Please fill in with as much")
-#     req_reason.click()
-#     req_reason.fill(phn_number_scenario["Reason"])
-#     req_reason.press("Enter")
-
-#     submit_req = page.locator("iframe[title=\"streamlitApp\"]").content_frame.get_by_test_id(
-#         "stBaseButton-secondary").click()
+    request_id = user_dtls_page.get_reqid
+    print(f"Request ID: {request_id}")
+    assert request_id is not None
