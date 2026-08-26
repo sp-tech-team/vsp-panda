@@ -7,39 +7,59 @@
 
     doc.__submitLockListenerInstalled = true;
 
-    doc.addEventListener(
-        "click",
-        function (event) {
+    doc.addEventListener("click", function (event) {
 
-            const button = event.target.closest("button");
+        const button = event.target.closest("button");
 
-            if (!button) {
-                return;
+        if (!button) {
+            return;
+        }
+
+        const container = button.closest('[class*="st-key-submit"]');
+
+        if (!container) {
+            return;
+        }
+
+        setTimeout(() => {
+            button.disabled = true;
+
+            // Remove previous validation-failed marker
+            const validationMarker = doc.querySelector(
+                "#request-validation-failed"
+            );
+
+            if (validationMarker) {
+                validationMarker.remove();
             }
+        }, 0);
 
-            // Find the Streamlit element corresponding
-            // to key="submit"
-            const container = button.closest(
+    }, false);
+
+    // Watch for Streamlit rerenders
+    const observer = new MutationObserver(() => {
+
+        const validationFailed = doc.querySelector("#request-validation-failed");
+
+        if (validationFailed) {
+
+            const submitContainer = doc.querySelector(
                 '[class*="st-key-submit"]'
             );
 
-            if (!container) {
-                return;
+            if (submitContainer) {
+                const submitButton = submitContainer.querySelector("button");
+
+                if (submitButton) {
+                    submitButton.disabled = false;
+                    console.log("Submit button re-enabled.");
+                }
             }
+        }
+    });
 
-            console.log("Submit Request pressed");
-
-            // Disable immediately
-            // doc.querySelectorAll(
-            //     'input, select, textarea, button'
-            // ).forEach(function (element) {
-            //     element.disabled = true;
-            // });
-            button.disabled = true;
-
-        },
-        true
-    );
-
-    console.log("Submit lock listener installed");
+    observer.observe(doc.body, {
+        childList: true,
+        subtree: true
+    });
 })();

@@ -581,7 +581,7 @@ def show_description_box() -> None:
 
 def show_submit_button():
     """Render the submit button"""
-    submit = st.button("Submit Request", key="submit")
+    submit = st.button("Submit Request", key = "submit")
     if not submit:
         return
 
@@ -685,6 +685,10 @@ def show_submit_button():
         )
 
     if not all(validation_results):
+        st.markdown(
+            '<div id="request-validation-failed" style="display:none"></div>',
+            unsafe_allow_html=True
+        )
         return
 
     req: Request = None
