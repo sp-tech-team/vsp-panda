@@ -756,6 +756,7 @@ def save_record():
         program_date = st.session_state["input_program_date"]
         from_date, to_date = program_date.start_date, program_date.end_date
 
+    is_health_related = False
     if subcategory is not None:
         if subcategory.show_from_date_input:
             from_date = st.session_state["input_from_date"]
@@ -799,7 +800,7 @@ def save_record():
     if coordinator_email and not coordinator_email.isspace():
         description += f"\nSeva Coordinator Mail ID: {coordinator_email}"
 
-    if is_health_related:
+    if is_health_related == True:
         description += f"\n#Health"
 
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -1035,7 +1036,9 @@ if __name__ == "__main__":
 
             volunteer = st.session_state.get("volunteer")
             if volunteer:
-                show_volunteer_details()
+                mode = utils.get_setting("mode")
+                if mode == "Development":
+                    show_volunteer_details()
 
                 col1, col2 = st.columns(2)
 
