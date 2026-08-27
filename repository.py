@@ -21,12 +21,33 @@ from labels import *
 
 #region Google Sheets headers
 
+BATHROOMS_HEADER = (
+    BATHROOM_BATHROOM_ID,
+    BATHROOM_STAY_AREA_ID,
+    BATHROOM_BATHROOM_NUM,
+    BATHROOM_IS_ACTIVE
+)
+
+BUNK_NUMBERS_HEADER = (
+    BUNK_NUM_BUNK_ID,
+    BUNK_NUM_STAY_AREA_ID,
+    BUNK_NUM_ROOM_ID,
+    BUNK_NUM_BUNK_NUM,
+    BUNK_NUM_IS_ACTIVE,
+)
+
 CATEGORIES_HEADER = (
     CATEGORY_CATEGORY_ID,
     CATEGORY_CATEGORY,
     CATEGORY_HAS_PROGRAMS,
     CATEGORY_IS_ACTIVE,
     CATEGORY_DISPLAY_ORDER,
+)
+
+FLOOR_NUMBERS_HEADER = (
+    FLOOR_NUM_FLOOR_ID,
+    FLOOR_NUM_FLOOR_NUM,
+    FLOOR_NUM_IS_ACTIVE
 )
 
 LOGS_HEADER = (
@@ -75,6 +96,13 @@ PROGRAM_DATES_HEADER = (
 #     PROGRAM_TEAM_MAPPING_TEAM_ID
 # )
 
+ROOMS_HEADER = (
+    ROOM_ROOM_ID,
+    ROOM_STAY_AREA_ID,
+    ROOM_ROOM_NUM,
+    ROOM_IS_ACTIVE
+)
+
 REQUESTS_HEADER = (
     REQUESTS_REQUEST_ID,
     REQUESTS_PERSON_ID,
@@ -107,6 +135,19 @@ SETTINGS_HEADER = (
     SETTINGS_NAME,
     SETTINGS_DESCRIPTION,
     SETTINGS_VALUE
+)
+
+SHOWERS_HEADER = (
+    SHOWER_SHOWER_ID,
+    SHOWER_STAY_AREA_ID,
+    SHOWER_SHOWER_NUM,
+    SHOWER_IS_ACTIVE
+)
+
+STAY_AREA_HEADER = (
+    STAY_AREA_STAY_AREA_ID,
+    STAY_AREA_STAY_AREA_NAME,
+    STAY_AREA_IS_ACTIVE,
 )
 
 SUB_CATEGORIES_MASTER_HEADER = (
@@ -197,9 +238,21 @@ def _validate_headers(headers: list[str], worksheet: str) -> None:
     """Ensure that the worksheet contains all required columns."""
     missing_headers: list[str] = []
 
-    if worksheet == CATEGORIES_WORKSHEET:
+    if worksheet == BUNK_NUM_WORKSHEET:
+        missing_headers = [
+            header for header in BUNK_NUMBERS_HEADER if header not in headers
+        ]
+    elif worksheet == BATHROOM_WORKSHEET:
+        missing_headers = [
+            header for header in BATHROOMS_HEADER if header not in headers
+        ]
+    elif worksheet == CATEGORIES_WORKSHEET:
         missing_headers = [
             header for header in CATEGORIES_HEADER if header not in headers
+        ]
+    elif worksheet == FLOOR_NUM_WORKSHEET:
+        missing_headers = [
+            header for header in FLOOR_NUMBERS_HEADER if header not in headers
         ]
     elif worksheet == LOGS_WORKSHEET:
         missing_headers = [
@@ -221,6 +274,10 @@ def _validate_headers(headers: list[str], worksheet: str) -> None:
     #     missing_headers = [
     #         header for header in PROGRAM_TEAM_MAPPING_HEADER if header not in headers
     #     ]
+    elif worksheet == ROOM_WORKSHEET:
+        missing_headers = [
+            header for header in ROOMS_HEADER if header not in headers
+        ]
     elif worksheet == REQUESTS_WORKSHEET:
         missing_headers = [
             header for header in REQUESTS_HEADER if header not in headers
@@ -228,6 +285,14 @@ def _validate_headers(headers: list[str], worksheet: str) -> None:
     elif worksheet == SETTINGS_WORKSHEET:
         missing_headers = [
             header for header in SETTINGS_HEADER if header not in headers
+        ]
+    elif worksheet == SHOWER_WORKSHEET:
+        missing_headers = [
+            header for header in SHOWERS_HEADER if header not in headers
+        ]
+    elif worksheet == STAY_AREA_WORKSHEET:
+        missing_headers = [
+            header for header in STAY_AREA_HEADER if header not in headers
         ]
     elif worksheet == SUB_CATEGORIES_WORKSHEET:
         missing_headers = [
@@ -261,6 +326,27 @@ def _validate_headers(headers: list[str], worksheet: str) -> None:
 
 # region Mapping Google Sheets rows to entities
 
+def _row_to_bathroom_entity(row: dict[str, Any]) -> Bathroom:
+    """Convert a Google Sheets row into a Bathroom entity."""
+
+    return Bathroom(
+        bathroom_id = str(row.get(BATHROOM_BATHROOM_ID, 0)),
+        stay_area_id = str(row.get(BATHROOM_STAY_AREA_ID, "")).strip(),
+        bathroom_num = str(row.get(BATHROOM_BATHROOM_NUM, "")).strip(),
+        is_active = str(row.get(BATHROOM_IS_ACTIVE, "")).strip().lower() == "true",
+    )
+
+def _row_to_bunk_num_entity(row: dict[str, Any]) -> BunkNumber:
+    """Convert a Google Sheets row into a Bunk Number entity."""
+
+    return BunkNumber(
+        bunk_id = str(row.get(BUNK_NUM_BUNK_ID, 0)),
+        stay_area_id = str(row.get(BUNK_NUM_STAY_AREA_ID, "")).strip(),
+        room_id = str(row.get(BUNK_NUM_ROOM_ID, "")).strip(),
+        bunk_num = str(row.get(BUNK_NUM_BUNK_NUM, "")).strip().lower() == "true",
+        is_active = str(row.get(BUNK_NUM_IS_ACTIVE, "")).strip().lower() == "true",
+    )
+
 def _row_to_category_entity(row: dict[str, Any]) -> Category:
     """Convert a Google Sheets row into a Category entity."""
 
@@ -270,6 +356,15 @@ def _row_to_category_entity(row: dict[str, Any]) -> Category:
         has_programs = str(row.get(CATEGORY_HAS_PROGRAMS, "")).strip().lower() == "true",
         is_active = str(row.get(CATEGORY_IS_ACTIVE, "")).strip().lower() == "true",
         display_order = int(str(row.get(CATEGORY_DISPLAY_ORDER, 0)).strip() or 0)
+    )
+
+def _row_to_floor_num_entity(row: dict[str, Any]) -> FloorNum:
+    """Convert a Google Sheets row into a Floor Number entity."""
+
+    return FloorNum(
+        floor_id = str(row.get(FLOOR_NUM_FLOOR_ID, 0)),
+        floor_num = str(row.get(FLOOR_NUM_FLOOR_NUM, "")).strip(),
+        is_active = str(row.get(FLOOR_NUM_IS_ACTIVE, "")).strip().lower() == "true",
     )
 
 def _row_to_parameter_entity(row: dict[str, Any]) -> Parameter:
@@ -318,12 +413,41 @@ def _row_to_program_dates_entity(row: dict[str, Any]) -> ProgramDates:
 #         team_id = str(row.get(PROGRAM_TEAM_MAPPING_TEAM_ID, "")).strip()
 #     )
 
+def _row_to_room_entity(row: dict[str, Any]) -> Room:
+    """Convert a Google Sheets row into a Room entity."""
+
+    return Room(
+        room_id = str(row.get(ROOM_ROOM_ID, 0)),
+        stay_area_id = str(row.get(ROOM_STAY_AREA_ID, "")).strip(),
+        room_num = str(row.get(ROOM_ROOM_NUM, "")).strip(),
+        is_active = str(row.get(ROOM_IS_ACTIVE, "")).strip().lower() == "true",
+    )
+
 def _row_to_settings_entity(row: dict[str, Any]) -> Setting:
     return Setting(
         setting_id = str(row.get(SETTINGS_SETTING_ID, "")).strip(),
         name = str(row.get(SETTINGS_NAME, "")).strip(),
         description = str(row.get(SETTINGS_DESCRIPTION, "")).strip(),
         value = str(row.get(SETTINGS_VALUE, "")).strip(),
+    )
+
+def _row_to_shower_entity(row: dict[str, Any]) -> Shower:
+    """Convert a Google Sheets row into a Shower entity."""
+
+    return Shower(
+        shower_id = str(row.get(SHOWER_SHOWER_ID, 0)),
+        stay_area_id = str(row.get(SHOWER_STAY_AREA_ID, "")).strip(),
+        shower_num = str(row.get(SHOWER_SHOWER_NUM, "")).strip(),
+        is_active = str(row.get(SHOWER_IS_ACTIVE, "")).strip().lower() == "true",
+    )
+
+def _row_to_stay_area_entity(row: dict[str, Any]) -> StayArea:
+    """Convert a Google Sheets row into a Stay Area entity."""
+
+    return StayArea(
+        stay_area_id = str(row.get(STAY_AREA_STAY_AREA_ID, 0)),
+        stay_area_name = str(row.get(STAY_AREA_STAY_AREA_NAME, "")).strip(),
+        is_active = str(row.get(STAY_AREA_IS_ACTIVE, "")).strip().lower() == "true",
     )
 
 def _row_to_subcategory_entity(row: dict[str, Any]) -> SubCategory:
@@ -426,11 +550,17 @@ def fetch_all_sheet_data() -> dict[str, list[list[str]]]:
     
     # List all tab names you want to load
     target_tabs = [
-        CATEGORIES_WORKSHEET, 
+        BATHROOM_WORKSHEET,
+        BUNK_NUM_WORKSHEET,
+        CATEGORIES_WORKSHEET,
+        FLOOR_NUM_WORKSHEET, 
         PARAMETERS_WORKSHEET, 
         PROGRAM_DATES_WORKSHEET,
+        ROOM_WORKSHEET,
         SETTINGS_WORKSHEET,
+        SHOWER_WORKSHEET,
         SUB_CATEGORIES_WORKSHEET,
+        STAY_AREA_WORKSHEET,
         TEAMS_WORKSHEET,
         VOLUNTEER_CATEGORIES_WORKSHEET,
         VOLUNTEERS_WORKSHEET
@@ -446,6 +576,62 @@ def fetch_all_sheet_data() -> dict[str, list[list[str]]]:
         data_by_tab[tab_name] = value_range.get("values", [])
         
     return data_by_tab
+
+
+
+def load_bathrooms() -> list[Bathroom]:
+    """
+    Load Bathroom records from Google Sheets.
+    """
+
+    all_data = fetch_all_sheet_data()
+    values = all_data.get(BATHROOM_WORKSHEET, [])
+
+    if not values:
+        return ()
+
+    headers = [str(header).strip() for header in values[0]]
+    _validate_headers(headers, BATHROOM_WORKSHEET) # ** Need to check if this is working
+
+    bathrooms: list[Bathroom] = []
+
+    for raw_row in values[1:]: # !! Don't know what this padded_row is doing
+        padded_row = raw_row + [""] * max( 
+            0,
+            len(headers) - len(raw_row),
+        )
+
+        row = dict(zip(headers, padded_row))
+        bathrooms.append(_row_to_bathroom_entity(row))
+
+    return bathrooms
+
+def load_bunk_nums() -> list[BunkNumber]:
+    """
+    Load Bunk Number records from Google Sheets.
+    """
+
+    all_data = fetch_all_sheet_data()
+    values = all_data.get(BUNK_NUM_WORKSHEET, [])
+
+    if not values:
+        return ()
+
+    headers = [str(header).strip() for header in values[0]]
+    _validate_headers(headers, BUNK_NUM_WORKSHEET) # ** Need to check if this is working
+
+    bunk_nums: list[BunkNumber] = []
+
+    for raw_row in values[1:]: # !! Don't know what this padded_row is doing
+        padded_row = raw_row + [""] * max( 
+            0,
+            len(headers) - len(raw_row),
+        )
+
+        row = dict(zip(headers, padded_row))
+        bunk_nums.append(_row_to_bunk_num_entity(row))
+
+    return bunk_nums
 
 def load_categories() -> list[Category]:
     """
@@ -476,6 +662,33 @@ def load_categories() -> list[Category]:
 
     return categories
 
+def load_floor_num() -> list[FloorNum]:
+    """
+    Load Floor Number records from Google Sheets.
+    """
+
+    all_data = fetch_all_sheet_data()
+    values = all_data.get(FLOOR_NUM_WORKSHEET, [])
+
+    if not values:
+        return ()
+
+    headers = [str(header).strip() for header in values[0]]
+    _validate_headers(headers, FLOOR_NUM_WORKSHEET) # ** Need to check if this is working
+
+    floor_nums: list[FloorNum] = []
+
+    for raw_row in values[1:]: # !! Don't know what this padded_row is doing
+        padded_row = raw_row + [""] * max( 
+            0,
+            len(headers) - len(raw_row),
+        )
+
+        row = dict(zip(headers, padded_row))
+        floor_nums.append(_row_to_floor_num_entity(row))
+
+    return floor_nums
+
 def load_parameters() -> tuple[Parameter, ...]:
     """
     Load Parameter records from Google Sheets.
@@ -503,7 +716,6 @@ def load_parameters() -> tuple[Parameter, ...]:
 
     return tuple(parameters)
 
-#
 # def load_programs() -> tuple[Program, ...]:
 #     """
 #     Load Program records from Google Sheets.
@@ -558,7 +770,6 @@ def load_program_dates() -> tuple[ProgramDates, ...]:
 
     return tuple(programs)
 
-#
 # def load_program_team_mapping() -> tuple[ProgramToTeamMapping, ...]:
 #     """
 #     Load Program Team Mapping records from Google Sheets.
@@ -588,6 +799,33 @@ def load_program_dates() -> tuple[ProgramDates, ...]:
 #         mapping.append(_row_to_program_team_mapping_entity(row))
 
 #     return tuple(mapping)
+
+def load_rooms() -> list[Room]:
+    """
+    Load Room records from Google Sheets.
+    """
+
+    all_data = fetch_all_sheet_data()
+    values = all_data.get(ROOM_WORKSHEET, [])
+
+    if not values:
+        return ()
+
+    headers = [str(header).strip() for header in values[0]]
+    _validate_headers(headers, ROOM_WORKSHEET) # ** Need to check if this is working
+
+    rooms: list[Room] = []
+
+    for raw_row in values[1:]: # !! Don't know what this padded_row is doing
+        padded_row = raw_row + [""] * max( 
+            0,
+            len(headers) - len(raw_row),
+        )
+
+        row = dict(zip(headers, padded_row))
+        rooms.append(_row_to_room_entity(row))
+
+    return rooms
 
 def load_request_ids() -> tuple[str, ...]:
     """
@@ -643,6 +881,60 @@ def load_settings() -> tuple[Setting, ...]:
         settings.append(_row_to_settings_entity(row))
 
     return tuple(settings)
+
+def load_showers() -> list[Shower]:
+    """
+    Load Showers records from Google Sheets.
+    """
+
+    all_data = fetch_all_sheet_data()
+    values = all_data.get(SHOWER_WORKSHEET, [])
+
+    if not values:
+        return ()
+
+    headers = [str(header).strip() for header in values[0]]
+    _validate_headers(headers, SHOWER_WORKSHEET) # ** Need to check if this is working
+
+    showers: list[Shower] = []
+
+    for raw_row in values[1:]: # !! Don't know what this padded_row is doing
+        padded_row = raw_row + [""] * max( 
+            0,
+            len(headers) - len(raw_row),
+        )
+
+        row = dict(zip(headers, padded_row))
+        showers.append(_row_to_shower_entity(row))
+
+    return showers
+
+def load_stay_areas() -> list[StayArea]:
+    """
+    Load Stay Area records from Google Sheets.
+    """
+
+    all_data = fetch_all_sheet_data()
+    values = all_data.get(STAY_AREA_WORKSHEET, [])
+
+    if not values:
+        return ()
+
+    headers = [str(header).strip() for header in values[0]]
+    _validate_headers(headers, STAY_AREA_WORKSHEET) # ** Need to check if this is working
+
+    stay_areas: list[StayArea] = []
+
+    for raw_row in values[1:]: # !! Don't know what this padded_row is doing
+        padded_row = raw_row + [""] * max( 
+            0,
+            len(headers) - len(raw_row),
+        )
+
+        row = dict(zip(headers, padded_row))
+        stay_areas.append(_row_to_stay_area_entity(row))
+
+    return stay_areas
 
 def load_subcategories() -> list[SubCategory]:
     """
@@ -772,6 +1064,37 @@ def load_volunteers() -> tuple[Volunteer, ...]:
 
 #region Repository classes
 
+class BathroomRepository:
+    """Read-only repository for Bathroom records."""
+
+    def __init__(self, bathrooms: tuple[Bathroom, ...] | None = None):
+        self._bathrooms = (
+            load_bathrooms()
+            if bathrooms is None
+            else bathrooms
+        )
+
+    def get_active_bathrooms(self, stay_area: StayArea) -> list[Bathroom]:
+        """Return all active Bathroom records."""
+        if stay_area == None:
+            return []
+
+        return list(
+            bathroom
+            for bathroom in self._bathrooms
+            if bathroom.is_active and bathroom.stay_area_id == stay_area.stay_area_id
+        )
+
+class BunkNumRepository:
+    """Read-only repository for Bunk Number records."""
+
+    def __init__(self, bunk_nums: tuple[BunkNumber, ...] | None = None):
+        self._bunk_nums = (
+            load_bunk_nums()
+            if bunk_nums is None
+            else bunk_nums
+        )
+
 class CategoryRepository:
     """Read-only repository for Category records."""
 
@@ -796,6 +1119,24 @@ class CategoryRepository:
             category
             for category in self._categories
             if category.is_active
+        )
+
+class FloorNumRepository:
+    """Read-only repository for Floor Number records."""
+
+    def __init__(self, floor_nums: tuple[FloorNum, ...] | None = None):
+        self._floor_nums = (
+            load_floor_num()
+            if floor_nums is None
+            else floor_nums
+        )
+
+    def get_active_floor_nums(self) -> list[FloorNum]:
+        """Return all active Floor Number records."""
+        return list(
+            floor_num
+            for floor_num in self._floor_nums
+            if floor_num.is_active
         )
 
 class LogRepository:
@@ -917,6 +1258,28 @@ class ParameterRepository:
 
 #         return None
 
+class RoomRepository:
+    """Read-only repository for Room records."""
+
+    def __init__(self, rooms: tuple[Room, ...] | None = None):
+        self._rooms = (
+            load_rooms()
+            if rooms is None
+            else rooms
+        )
+
+    def get_active_rooms(self, stay_area: StayArea) -> list[Room]:
+        """Return all active Room records."""
+        if stay_area == None:
+            return []
+
+        return list(
+            room
+            for room in self._rooms
+            if room.is_active and room.stay_area_id == stay_area.stay_area_id
+        )
+
+
 class RequestRepository:
     """Repository for Program records."""
 
@@ -995,6 +1358,45 @@ class SettingRepository:
                 return setting
         
         return None
+
+class ShowerRepository:
+    """Read-only repository for Shower records."""
+
+    def __init__(self, showers: tuple[Shower, ...] | None = None):
+        self._showers = (
+            load_showers()
+            if showers is None
+            else showers
+        )
+
+    def get_active_showers(self, stay_area: StayArea) -> list[Shower]:
+        """Return all active Shower records."""
+        if stay_area == None:
+            return []
+
+        return list(
+            shower
+            for shower in self._showers
+            if shower.is_active and shower.stay_area_id == stay_area.stay_area_id
+        )
+
+class StayAreaRepository:
+    """Read-only repository for Stay Area records."""
+
+    def __init__(self, stay_areas: tuple[StayArea, ...] | None = None):
+        self._stay_areas = (
+            load_stay_areas()
+            if stay_areas is None
+            else stay_areas
+        )
+
+    def get_active_stay_areas(self) -> list[StayArea]:
+        """Return all active Stay Area records."""
+        return list(
+            stay_area
+            for stay_area in self._stay_areas
+            if stay_area.is_active
+        )
 
 class SubCategoryRepository:
     """Read-only repository for Sub Category records."""

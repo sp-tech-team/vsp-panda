@@ -1,3 +1,36 @@
+# Bathrooms
+
+BATHROOM_WORKSHEET = "Bathrooms"
+
+# Bathrooms Header
+
+BATHROOM_BATHROOM_ID = "Bathroom ID"
+BATHROOM_STAY_AREA_ID = "Stay Area ID"
+BATHROOM_BATHROOM_NUM = "Bathroom Num"
+BATHROOM_IS_ACTIVE = "Is Active"
+
+
+
+
+
+
+# Bunk Numbers
+
+BUNK_NUM_WORKSHEET = "Bunk Numbers"
+
+# Bunk Numbers Header
+
+BUNK_NUM_BUNK_ID = "Bunk ID"
+BUNK_NUM_STAY_AREA_ID = "Stay Area ID"
+BUNK_NUM_ROOM_ID = "Room ID"
+BUNK_NUM_BUNK_NUM = "Bunk Num"
+BUNK_NUM_IS_ACTIVE = "Is Active"
+
+
+
+
+
+
 # Categories
 
 CATEGORIES_WORKSHEET = "Categories"
@@ -9,6 +42,21 @@ CATEGORY_CATEGORY = "Category"
 CATEGORY_HAS_PROGRAMS = "Has Programs"
 CATEGORY_IS_ACTIVE = "Is Active"
 CATEGORY_DISPLAY_ORDER = "Display Order"
+
+
+
+
+
+
+# Floor Number
+
+FLOOR_NUM_WORKSHEET = "Floor Numbers"
+
+# Floor Number Header
+
+FLOOR_NUM_FLOOR_ID = "Floor ID"
+FLOOR_NUM_FLOOR_NUM = "Floor Num"
+FLOOR_NUM_IS_ACTIVE = "Is Active"
 
 
 
@@ -98,6 +146,21 @@ PROGRAM_TEAM_MAPPING_TEAM_ID = "Team ID"
 
 
 
+# Rooms
+
+ROOM_WORKSHEET = "Rooms"
+
+# Rooms Header
+
+ROOM_ROOM_ID = "Room ID"
+ROOM_STAY_AREA_ID = "Stay Area ID"
+ROOM_ROOM_NUM = "Room Num"
+ROOM_IS_ACTIVE = "Is Active"
+
+
+
+
+
 # Requests
 
 REQUESTS_WORKSHEET = "Requests"
@@ -144,6 +207,35 @@ SETTINGS_SETTING_ID = "Setting ID"
 SETTINGS_NAME = "Name"
 SETTINGS_DESCRIPTION = "Description"
 SETTINGS_VALUE = "Value"
+
+
+
+
+
+# Showers
+
+SHOWER_WORKSHEET = "Showers"
+
+# Showers Header
+
+SHOWER_SHOWER_ID = "Shower ID"
+SHOWER_STAY_AREA_ID = "Stay Area ID"
+SHOWER_SHOWER_NUM = "Shower Num"
+SHOWER_IS_ACTIVE = "Is Active"
+
+
+
+
+
+# Stay Area
+
+STAY_AREA_WORKSHEET = "Stay Areas"
+
+# Stay Area Header
+
+STAY_AREA_STAY_AREA_ID = "Stay Area ID"
+STAY_AREA_STAY_AREA_NAME = "Stay Area Name"
+STAY_AREA_IS_ACTIVE = "Is Active"
 
 
 

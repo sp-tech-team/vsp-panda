@@ -4,6 +4,30 @@ from dataclasses import dataclass
 from datetime import date, datetime
 
 
+@dataclass
+class Bathroom:
+    """Represents a bathroom record from the Bathroom Google Sheet."""
+
+    bathroom_id: str
+    stay_area_id: str
+    bathroom_num: str
+    is_active: bool
+
+    def __str__(self) -> str:
+        return self.bathroom_num
+
+@dataclass
+class BunkNumber:
+    """Represents a Bunk Number record from the Bunk Numbers Google Sheet."""
+
+    bunk_id: str
+    stay_area_id: str
+    room_id: str
+    bunk_num: str
+    is_active: bool
+
+    def __str__(self) -> str:
+        return self.bunk_num
 
 @dataclass
 class Category:
@@ -27,6 +51,17 @@ class CountryCode:
 
     def __str__(self) -> str:
         return f"{self.region} (+{self.country_code})"
+
+@dataclass
+class FloorNum:
+    """Represents a floor number record from the Floor Numbers Google Sheet."""
+
+    floor_id: str
+    floor_num: str
+    is_active: bool
+
+    def __str__(self) -> str:
+        return self.floor_num
 
 @dataclass
 class Log:
@@ -131,6 +166,18 @@ class Request:
         return f"{self.request_id} - {self.request_type} | {self.name} <{self.email_id}> <{self.phone_number}>"
 
 @dataclass
+class Room:
+    """Represents a room record from the Rooms Google Sheet."""
+
+    room_id: str
+    stay_area_id: str
+    room_num: str
+    is_active: bool
+
+    def __str__(self) -> str:
+        return self.room_num
+
+@dataclass
 class Setting:
     """Represents a setting record from the Settings Google Sheet."""
 
@@ -141,6 +188,29 @@ class Setting:
 
     def __str__(self) -> str:
         return f"{self.name} = {self.value}"
+
+@dataclass
+class Shower:
+    """Represents a shower record from the Showers Google Sheet."""
+
+    shower_id: str
+    stay_area_id: str
+    shower_num: str
+    is_active: bool
+
+    def __str__(self) -> str:
+        return self.shower_num
+
+@dataclass
+class StayArea:
+    """Represents a stay area record from the Stay Areas Google Sheet."""
+
+    stay_area_id: str
+    stay_area_name: str
+    is_active: bool
+
+    def __str__(self) -> str:
+        return self.stay_area_name
 
 @dataclass
 class SubCategory:

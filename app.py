@@ -11,8 +11,23 @@ import utils
 import re
 import time
 
-from entities import Log, Request, SubCategory
-from repository import CategoryRepository, LogRepository, ParameterRepository, RequestRepository, SettingRepository, SubCategoryRepository, TeamRepository, VolunteerCategoryRepository, VolunteerRepository
+from entities import Bathroom, FloorNum, Log, Request, Room, Shower, StayArea, SubCategory
+from repository import BathroomRepository, BunkNumRepository, CategoryRepository, FloorNumRepository, LogRepository, ParameterRepository, RoomRepository, RequestRepository, SettingRepository, ShowerRepository, StayAreaRepository, SubCategoryRepository, VolunteerCategoryRepository, VolunteerRepository
+
+bathroom_repo = BathroomRepository()
+bunk_num_repo = BunkNumRepository()
+category_repo = CategoryRepository()
+floor_num_repo = FloorNumRepository()
+setting_repo = SettingRepository()
+parameter_repo = ParameterRepository()
+room_repo = RoomRepository()
+setting_repo = SettingRepository()
+shower_repo = ShowerRepository()
+stay_area_repo = StayAreaRepository ()
+subcategory_repo = SubCategoryRepository()
+vol_cat_repo = VolunteerCategoryRepository()
+volunteer_repo = VolunteerRepository()
+
 
 if "volunteer_identified" in st.session_state and st.session_state["volunteer_identified"]:
     st.session_state["state"] = "Form"
@@ -55,8 +70,6 @@ def load_js() -> None:
 def show_volunteer_email_identification() -> None:
     """Render the Volunteer identification flow."""
     # st.header("👤 Volunteer Identification")
-
-    volunteer_repo = VolunteerRepository()
 
     required_label("📧 Email ID")
     email = st.text_input(
@@ -121,9 +134,6 @@ def show_forgot_email_button() -> None:
 
 def show_volunteer_phone_identification() -> None:
     """Render the phone identification flow."""
-    setting_repo = SettingRepository()
-    volunteer_repo = VolunteerRepository()
-
     country_codes = utils.get_country_code_map()
     default_country_code_index = next(
                                         (
@@ -233,8 +243,6 @@ def show_category_selection(col) -> None:
             st.error("Volunteer not identified.")
             return
 
-        category_repo = CategoryRepository()
-
         categories = category_repo.get_active_categories()
         category_options = {category.category: category for category in categories}
 
@@ -243,8 +251,6 @@ def show_category_selection(col) -> None:
         #     k: v for k, v in st.session_state.items()
         #     if "categor" in k.lower()
         # })
-
-
 
         required_label("📌 I want to reach out to:")
         input_category_name = st.selectbox(
@@ -266,8 +272,6 @@ def show_category_selection(col) -> None:
 
 def show_subcategory_selection(col) -> None:
     """Render the subcategory selection flow."""
-    subcategory_repo = SubCategoryRepository()
-
     with col:
         volunteer = st.session_state.get("volunteer")
         if not volunteer:
@@ -330,8 +334,6 @@ def render_dynamic_dropdowns(sub_cat: SubCategory) -> None:
 
     col1, col2 = st.columns(2)
 
-    parameter_repo = ParameterRepository()
-
     cur_col = col1
     for field in dynamic_dropdowns:
         with cur_col:
@@ -371,6 +373,177 @@ def render_dynamic_textbox(sub_cat: SubCategory) -> None:
                             label_visibility="collapsed",)
 
             cur_col = col1 if cur_col != col1 else col2
+
+def show_accomodation_fields() -> None:
+    """Render the accomodation fields."""
+    # This field is used for form validation. 
+    # I am assuming that if this function will be called only when accomodation fields is required.
+    st.session_state["is_stay_area_req"] = True
+    st.session_state["is_room_req"] = True
+    st.session_state["is_bathroom_req"] = True
+    st.session_state["is_floor_num_req"] = True
+    st.session_state["is_shower_req"] = True
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        # Stay Area
+        stay_area_na = StayArea(
+            stay_area_id = "N/A",
+            stay_area_name = "N/A",
+            is_active = True
+        )
+
+        stay_areas = [ stay_area_na ]
+        stay_areas.extend(stay_area_repo.get_active_stay_areas())
+
+        stay_areas_options = {stay_area.stay_area_name: stay_area for stay_area in stay_areas}
+
+        required_label("Stay Area")
+        input_stay_area_name = st.selectbox(
+            "", # ** No longer relevant
+            list(stay_areas_options.keys()),
+            index=None,
+            key="input_stay_area_name",
+            label_visibility="collapsed",
+            placeholder="Select Stay Area",
+        )
+        st.caption("Please select 'N/A' if stay area is not applicable.")
+
+        input_stay_area = None
+        if (input_stay_area_name is not None) and (input_stay_area_name in stay_areas_options):
+            input_stay_area = stay_areas_options[input_stay_area_name]
+            st.session_state["input_stay_area"] = input_stay_area
+        else:
+            st.session_state.pop("input_stay_area", None)
+            st.session_state.pop("input_stay_area_name", None)
+
+        # Rooms
+
+        room_na = Room(
+            room_id = "N/A",
+            stay_area_id = "N/A",
+            room_num = "N/A",
+            is_active = True
+        )
+
+        rooms = [ room_na ]
+        rooms.extend(room_repo.get_active_rooms(input_stay_area))
+
+        rooms_options = {room.room_num: room for room in rooms}
+
+        required_label("Room")
+        input_room_name = st.selectbox(
+            "", # ** No longer relevant
+            list(rooms_options.keys()),
+            index=None,
+            key="input_room_name",
+            label_visibility="collapsed",
+            placeholder="Select Room",
+        )
+        st.caption("Please select 'N/A' if room is not applicable.")
+
+        if (input_room_name is not None) and (input_room_name in rooms_options):
+            input_room = rooms_options[input_room_name]
+            st.session_state["input_room"] = input_room
+        else:
+            st.session_state.pop("input_room", None)
+            st.session_state.pop("input_room_name", None)
+
+        # Bathrooms
+
+        bathroom_na = Bathroom(
+            bathroom_id = "N/A",
+            stay_area_id = "N/A",
+            bathroom_num = "N/A",
+            is_active = True
+        )
+
+        bathrooms = [ bathroom_na ]
+        bathrooms.extend(bathroom_repo.get_active_bathrooms(input_stay_area))
+
+        bathrooms_options = {bathroom.bathroom_num: bathroom for bathroom in bathrooms}
+
+        required_label("Bathrooms")
+        input_bathroom_name = st.selectbox(
+            "", # ** No longer relevant
+            list(bathrooms_options.keys()),
+            index=None,
+            key="input_bathroom_name",
+            label_visibility="collapsed",
+            placeholder="Select Bathroom",
+        )
+        st.caption("Please select 'N/A' if bathroom is not applicable.")
+
+        if (input_bathroom_name is not None) and (input_bathroom_name in bathrooms_options):
+            input_bathroom = bathrooms_options[input_bathroom_name]
+            st.session_state["input_bathroom"] = input_bathroom
+        else:
+            st.session_state.pop("input_bathroom", None)
+            st.session_state.pop("input_bathroom_name", None)
+
+    with col2:
+        # Floor Number
+        floor_num_na = FloorNum(
+            floor_id = "N/A",
+            floor_num = "N/A",
+            is_active = True
+        )
+
+        floor_nums = [ floor_num_na ]
+        floor_nums.extend(floor_num_repo.get_active_floor_nums())
+
+        floor_nums_options = {floor_num.floor_num: floor_num for floor_num in floor_nums}
+
+        required_label("Floor Number")
+        input_floor_num_name = st.selectbox(
+            "", # ** No longer relevant
+            list(floor_nums_options.keys()),
+            index=None,
+            key="input_floor_num_name",
+            label_visibility="collapsed",
+            placeholder="Select Floor Number",
+        )
+        st.caption("Please select 'N/A' if floor number is not applicable.")
+
+        if (input_floor_num_name is not None) and (input_floor_num_name in floor_nums_options):
+            input_floor_num = floor_nums_options[input_floor_num_name]
+            st.session_state["input_floor_num"] = input_floor_num
+        else:
+            st.session_state.pop("input_floor_num", None)
+            st.session_state.pop("input_floor_num_name", None)
+
+        # Showers
+
+        shower_na = Shower(
+            shower_id = "N/A",
+            stay_area_id = "N/A",
+            shower_num = "N/A",
+            is_active = True
+        )
+
+        showers = [ shower_na ]
+        showers.extend(shower_repo.get_active_showers(input_stay_area))
+
+        showers_options = {shower.shower_num: shower for shower in showers}
+
+        required_label("Showers")
+        input_shower_name = st.selectbox(
+            "", # ** No longer relevant
+            list(showers_options.keys()),
+            index=None,
+            key="input_shower_name",
+            label_visibility="collapsed",
+            placeholder="Select Shower",
+        )
+        st.caption("Please select 'N/A' if shower is not applicable.")
+
+        if (input_shower_name is not None) and (input_shower_name in showers_options):
+            input_shower = showers_options[input_shower_name]
+            st.session_state["input_shower"] = input_shower
+        else:
+            st.session_state.pop("input_shower", None)
+            st.session_state.pop("input_shower_name", None)
 
 # def show_program_selection() -> None:
 #     """Render the program selection flow."""
@@ -419,9 +592,6 @@ def show_program_dates_selection() -> None:
     if not input_subcategory:
         # st.error("Program not selected.")
         return
-
-    subcategory_repo = SubCategoryRepository()
-    setting_repo = SettingRepository()
 
     # This field is used for form validation. 
     # I am assuming that if this function will be called only when program date is required.
@@ -536,10 +706,9 @@ def show_health_related_bool() -> None:
     st.session_state["is_health_related_bool_req"] = True
 
     required_label("🩺 Is it health related?")
-
     health_related = st.radio(
         "",
-        options=["Yes", "No"],
+        options=["Yes, health related", "No, not health related"],
         index=1,
         key="health_related",
         label_visibility="collapsed",
@@ -599,6 +768,46 @@ def show_submit_button():
             validate_required(
                 st.session_state.get("input_subcategory", ""), 
                 "⚠️ Please select a Sub Category.")
+        )
+
+    is_stay_area_req = st.session_state.get("is_stay_area_req", False)
+    if is_stay_area_req:
+        validation_results.append(
+            validate_required(
+                st.session_state.get("input_stay_area", ""), 
+                "⚠️ Please select a Stay Area.")
+        )
+
+    is_room_req = st.session_state.get("is_room_req", False)
+    if is_room_req:
+        validation_results.append(
+            validate_required(
+                st.session_state.get("input_room", ""), 
+                "⚠️ Please select a Room.")
+        )
+
+    is_bathroom_req = st.session_state.get("is_bathroom_req", False)
+    if is_bathroom_req:
+        validation_results.append(
+            validate_required(
+                st.session_state.get("input_bathroom", ""), 
+                "⚠️ Please select a Bathroom.")
+        )
+
+    is_floor_num_req = st.session_state.get("is_floor_num_req", False)
+    if is_floor_num_req:
+        validation_results.append(
+            validate_required(
+                st.session_state.get("input_floor_num", ""), 
+                    "⚠️ Please select a Floor.")
+        )
+
+    is_shower_req = st.session_state.get("is_shower_req", False)
+    if is_shower_req:
+        validation_results.append(
+            validate_required(
+                st.session_state.get("input_shower", ""), 
+                "⚠️ Please select a Shower.")
         )
 
     dynamic_dropdowns = st.session_state.get("dynamic_dropdowns", None)
@@ -740,7 +949,6 @@ def validate_required(value: Any, error_message: str) -> bool:
 
 def save_record():
     request_repo = RequestRepository()
-    vol_cat_repo = VolunteerCategoryRepository()
 
     volunteer = st.session_state["volunteer"]
     vol_cat = vol_cat_repo.get_by_id(volunteer.volunteer_category)
@@ -788,12 +996,39 @@ def save_record():
 
     description = st.session_state["input_description"]
 
+    is_stay_area_req = st.session_state.get("is_stay_area_req", False)
+    if is_stay_area_req:
+        input_stay_area = st.session_state.get("input_stay_area", "")
+        description += f"\nStay Area: {input_stay_area.stay_area_name}"
+
+    is_room_req = st.session_state.get("is_room_req", False)
+    if is_room_req:
+        input_room = st.session_state.get("input_room", "")
+        description += f"\nRoom: {input_room.room_num}"
+
+    is_bathroom_req = st.session_state.get("is_bathroom_req", False)
+    if is_bathroom_req:
+        input_bathroom = st.session_state.get("input_bathroom", "")
+        description += f"\nBathroom: {input_bathroom.bathroom_num}"
+
+    is_floor_num_req = st.session_state.get("is_floor_num_req", False)
+    if is_floor_num_req:
+        input_floor_num = st.session_state.get("input_floor_num", "")
+        description += f"\nFloor Number: {input_floor_num.floor_num}"
+
+    is_shower_req = st.session_state.get("is_shower_req", False)
+    if is_shower_req:
+        input_shower = st.session_state.get("input_shower", "")
+        description += f"\nShower: {input_shower.shower_num}"
+
+
+    
+
     dynamic_dropdowns = st.session_state.get("dynamic_dropdowns", None)
     if dynamic_dropdowns:
         for field in dynamic_dropdowns:
             value = st.session_state[field["key_name"]]
             description += f"\n{field["name"]}: {value}"
-    
 
     dynamic_textbox = st.session_state.get("dynamic_textbox", None)
     if dynamic_textbox:
@@ -973,6 +1208,7 @@ def show_success_popup(request_id):
     if st.button("OK", type="primary"):
         st.session_state["reset_form_requested"] = True
         st.rerun()
+
 # def send_mail_requester(request: Request) -> None:
 #     """Send the request notification to the requester."""
 
@@ -1050,6 +1286,10 @@ if __name__ == "__main__":
                 input_category = st.session_state.get("input_category")
                 if input_category != None:
                     show_subcategory_selection(col2)
+
+                    accomodation_id = setting_repo.get_by_key("ACCOMODATION_CATEGORY_ID")
+                    if input_category.category_id == accomodation_id.value:
+                        show_accomodation_fields()
 
                 input_subcategory = st.session_state.get("input_subcategory")
                 if input_subcategory != None:
