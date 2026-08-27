@@ -61,7 +61,11 @@ class UserDetailsPage:
 
     def enter_request(self, testdata):
         self.select_category(testdata['Category'])
-        self.select_subcategory(testdata['SubCategory'])
+        if (testdata['SubCategory'] is not None):
+            self.select_subcategory(testdata['SubCategory'])
+        else:
+            pytest.skip(
+                "Sub category is not available. Skipping this scenario.")
 
         if (testdata["ProgramDate"] is not None):
             if self.pgmavailable.is_visible():

@@ -10,7 +10,7 @@ def browser():
         browser = p.chromium.launch(
             channel="chrome",  # optional
             headless=False,
-            slow_mo=1000
+            slow_mo=500
         )
 
         yield browser

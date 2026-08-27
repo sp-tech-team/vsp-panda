@@ -400,7 +400,7 @@
         "SubCategory": "1 Day city visit",
         "ProgramDate": null,
         "FromDate": 1,
-        "ToDate": null,
+        "ToDate": 1,
         "CoordinatorEmail": "testauto@coordinator.com",
         "Reason": "Test automation creating request for 1 day city visit"
     },
