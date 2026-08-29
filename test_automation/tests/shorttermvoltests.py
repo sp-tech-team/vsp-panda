@@ -41,6 +41,6 @@ def test_stv_usrdtl(page, scenario_name):
 #     find_user_page.search_user(email_scenario)
 #     user_dtls_page.enter_request(email_scenario)
 
-#     request_id = user_dtls_page.get_reqid
+#     request_id = user_dtls_page.get_reqid()
 #     print(f"Request ID: {request_id}")
 #     assert request_id is not None

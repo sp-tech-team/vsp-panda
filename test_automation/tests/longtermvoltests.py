@@ -53,36 +53,36 @@ with open(json_file, "r") as f:
 #     expect(dept_date).to_be_visible()
 
 
-@pytest.mark.parametrize(
-    "scenario_name",
-    data.keys(),
-    ids=data.keys()
-)
-def test_ltv_usrdtl(page, scenario_name):
+# @pytest.mark.parametrize(
+#     "scenario_name",
+#     data.keys(),
+#     ids=data.keys()
+# )
+# def test_ltv_usrdtl(page, scenario_name):
 
-    scenario = data[scenario_name]
+#     scenario = data[scenario_name]
 
-    user_dtls_page = UserDetailsPage(page)
-    find_user_page = FindUserPage(page)
-
-    find_user_page.search_user(scenario)
-    user_dtls_page.enter_request(scenario)
-
-    request_id = user_dtls_page.get_reqid()
-    print(f"Scenario: {scenario}")
-    print(f"Request ID: {request_id}")
-    assert request_id is not None
-
-
-# def test_ltv_usrdtl_1dayvisit(page):
-
-#     email_scenario = data["test_ltv_usrdtl_exitbrk_exit"]
 #     user_dtls_page = UserDetailsPage(page)
 #     find_user_page = FindUserPage(page)
 
-#     find_user_page.search_user(email_scenario)
-#     user_dtls_page.enter_request(email_scenario)
+#     find_user_page.search_user(scenario)
+#     user_dtls_page.enter_request(scenario)
 
-#     request_id = user_dtls_page.get_reqid
+#     request_id = user_dtls_page.get_reqid()
+#     print(f"Scenario: {scenario}")
 #     print(f"Request ID: {request_id}")
 #     assert request_id is not None
+
+
+def test_ltv_usrdtl_stayext(page):
+
+    email_scenario = data["test_ltv_usrdtl_stayext"]
+    user_dtls_page = UserDetailsPage(page)
+    find_user_page = FindUserPage(page)
+
+    find_user_page.search_user(email_scenario)
+    user_dtls_page.enter_request(email_scenario)
+
+    request_id = user_dtls_page.get_reqid()
+    print(f"Request ID: {request_id}")
+    assert request_id is not None

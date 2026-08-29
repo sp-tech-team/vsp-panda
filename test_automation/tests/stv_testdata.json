@@ -369,8 +369,8 @@
         "Category": "Stay Extension",
         "SubCategory": "Stay Extension",
         "ProgramDate": null,
-        "FromDate": null,
-        "ToDate": null,
+        "FromDate": 0,
+        "ToDate": 2,
         "CoordinatorEmail": null,
         "Reason": "Test automation creating request for Stay Extension"
     }

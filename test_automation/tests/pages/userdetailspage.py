@@ -1,5 +1,6 @@
 import time
 from datetime import datetime, timedelta
+from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 import pytest
 
 
@@ -76,8 +77,8 @@ class UserDetailsPage:
             self.pgmdate.fill(testdata["ProgramDate"])
 
         if (testdata["FromDate"] is not None):
-            self.select_from_date(testdata["FromDate"])
-            self.select_to_date(testdata["FromDate"], testdata["ToDate"])
+            self.select_from_to_date(
+                testdata['SubCategory'], testdata['DepartureDate'], testdata['FromDate'], testdata['ToDate'])
 
         if (testdata["CoordinatorEmail"] is not None):
             self.enter_coord_email(testdata["CoordinatorEmail"])
@@ -90,6 +91,12 @@ class UserDetailsPage:
     def get_date_with_delta(self, delta_days):
         return (
             datetime.now() + timedelta(days=int(delta_days))
+        ).strftime("%d/%m/%Y")
+
+    def get_delta_from_dept_date(self, dept_date, delta_days):
+        date_obj = datetime.strptime(dept_date, "%b %d, %Y").date()
+        return (
+            date_obj + timedelta(days=int(delta_days))
         ).strftime("%d/%m/%Y")
 
     def select_category(self, category):
@@ -112,23 +119,29 @@ class UserDetailsPage:
         self.pgmdate.press("ArrowDown")
         self.pgmdate.press("Enter")
 
-    def select_from_date(self, fromdate):
-        self.date_value = self.get_date_with_delta(
-            fromdate)
+    def select_from_to_date(self, subcategory, deptdate, fromdate, todate):
+        if (subcategory == "Stay Extension"):
+            self.date_value = self.get_delta_from_dept_date(deptdate, fromdate)
+        else:
+            self.date_value = self.get_date_with_delta(self.date_value)
+
         self.from_date.wait_for(state="visible", timeout=30000)
         self.from_date.click()
         self.from_date.clear()
         self.from_date.fill(self.date_value)
         self.from_date.press("Tab")
 
+        self.select_to_date(self.date_value, todate)
+
     def select_to_date(self, fromdate, todate):
         if todate is not None:
-            final_date = (fromdate + todate)
-            self.to_value = self.get_date_with_delta(final_date)
+            self.final_date = datetime.strptime(
+                fromdate, "%d/%m/%Y").date() + timedelta(days=todate)
+            # self.to_value = self.get_date_with_delta(final_date)
             self.to_date.wait_for(state="visible", timeout=30000)
             self.to_date.click()
             self.to_date.clear()
-            self.to_date.fill(self.to_value)
+            self.to_date.fill(self.final_date.strftime("%d/%m/%Y"))
             self.to_date.press("Tab")
 
     def enter_coord_email(self, coordinatoremail):
@@ -145,9 +158,15 @@ class UserDetailsPage:
         self.submit_req.click()
 
     def get_reqid(self):
-        self.success_msg.wait_for(state="visible")
-        message = self.success_msg.text_content()
-        request_id = message.replace("Your request ID is", "").strip()
-        return request_id
+        try:
+            self.success_msg.wait_for(state="visible", timeout=10000)
+            message = self.success_msg.text_content()
+            request_id = message.replace("Your request ID is", "").strip()
+            return request_id
+
+        except PlaywrightTimeoutError:
+            pytest.fail(
+                "Success message did not appear within 10 seconds. Request was likely not submitted successfully.")
+
     #  ok button on pop-up
     #  self.page.locator("iframe[title=\"streamlitApp\"]").content_frame.get_by_test_id("stBaseButton-primary").click()
