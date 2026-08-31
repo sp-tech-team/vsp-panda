@@ -20,27 +20,28 @@ def test_stv_usrdtl(page, scenario_name):
 
     scenario = data[scenario_name]
 
-    user_dtls_page = UserDetailsPage(page)
     find_user_page = FindUserPage(page)
+    user_dtls_page = UserDetailsPage(page)
 
     find_user_page.search_user(scenario)
     user_dtls_page.enter_request(scenario)
 
-    request_id = user_dtls_page.get_reqid()
+    result = user_dtls_page.get_reqid(scenario_name)
     print(f"Scenario: {scenario}")
-    print(f"Request ID: {request_id}")
-    assert request_id is not None
+    print(f"Result is: {result}")
+    assert result is not None
 
 
-# def test_stv_usrdtl_1dayvisit(page):
+# def test_stv_usrdtl_stayext(page, scenario_name):
 
-#     email_scenario = data["test_stv_usrdtl_exitbrk_exit"]
+#     scenario = data["test_stv_usrdtl_stayext"]
 #     user_dtls_page = UserDetailsPage(page)
 #     find_user_page = FindUserPage(page)
 
-#     find_user_page.search_user(email_scenario)
-#     user_dtls_page.enter_request(email_scenario)
+#     find_user_page.search_user(scenario)
+#     user_dtls_page.enter_request(scenario)
 
-#     request_id = user_dtls_page.get_reqid()
-#     print(f"Request ID: {request_id}")
-#     assert request_id is not None
+#     result = user_dtls_page.get_reqid(scenario_name)
+#     print(f"Scenario: {scenario}")
+#     print(f"Result is: {result}")
+#     assert result is not None

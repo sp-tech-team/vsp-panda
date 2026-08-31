@@ -11,36 +11,37 @@ with open(json_file, "r") as f:
     data = json.load(f)
 
 
-# @pytest.mark.parametrize(
-#     "scenario_name",
-#     data.keys(),
-#     ids=data.keys()
-# )
-# def test_stv_usrdtl(page, scenario_name):
+@pytest.mark.parametrize(
+    "scenario_name",
+    data.keys(),
+    ids=data.keys()
+)
+def test_av_usrdtl(page, scenario_name):
 
-#     scenario = data[scenario_name]
+    scenario = data[scenario_name]
 
+    find_user_page = FindUserPage(page)
+    user_dtls_page = UserDetailsPage(page)
+
+    find_user_page.search_user(scenario)
+    user_dtls_page.enter_request(scenario)
+
+    result = user_dtls_page.get_reqid(scenario_name)
+    print(f"Scenario: {scenario}")
+    print(f"Result is: {result}")
+    assert result is not None
+
+
+# def test_av_usrdtl_stayext(page, scenario_name):
+
+#     scenario = data["test_av_usrdtl_stayext"]
 #     user_dtls_page = UserDetailsPage(page)
 #     find_user_page = FindUserPage(page)
 
 #     find_user_page.search_user(scenario)
 #     user_dtls_page.enter_request(scenario)
 
-#     request_id = user_dtls_page.get_reqid()
+#     result = user_dtls_page.get_reqid(scenario_name)
 #     print(f"Scenario: {scenario}")
-#     print(f"Request ID: {request_id}")
-#     assert request_id is not None
-
-
-def test_av_usrdtl_exitbrk_travel(page):
-
-    email_scenario = data["test_av_usrdtl_exitbrk_travel"]
-    user_dtls_page = UserDetailsPage(page)
-    find_user_page = FindUserPage(page)
-
-    find_user_page.search_user(email_scenario)
-    user_dtls_page.enter_request(email_scenario)
-
-    request_id = user_dtls_page.get_reqid()
-    print(f"Request ID: {request_id}")
-    assert request_id is not None
+#     print(f"Result is: {result}")
+#     assert result is not None
