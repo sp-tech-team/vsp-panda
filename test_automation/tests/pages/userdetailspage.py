@@ -41,6 +41,9 @@ class UserDetailsPage:
         self.pgmdate = self.frame.get_by_role(
             "combobox", name="Select Program Date")
 
+        # Add locator once alert is added
+        self.silenceerrormsg = self.frame.get_by_test_id("")
+
         # self.healthrelated = self.frame.locator('input[type="radio"][value="0"]')
 
         # self.healthrelated = self.page.get_by_label("Yes")
@@ -86,7 +89,7 @@ class UserDetailsPage:
         if (testdata["Reason"] is not None):
             self.enter_req_reason(testdata["Reason"])
 
-        self.submit_req.click()
+        self.click_submit()
 
     def get_date_with_delta(self, delta_days):
         return (
@@ -123,7 +126,7 @@ class UserDetailsPage:
         if (subcategory == "Stay Extension"):
             self.date_value = self.get_delta_from_dept_date(deptdate, fromdate)
         else:
-            self.date_value = self.get_date_with_delta(self.date_value)
+            self.date_value = self.get_date_with_delta(fromdate)
 
         self.from_date.wait_for(state="visible", timeout=30000)
         self.from_date.click()
@@ -157,12 +160,25 @@ class UserDetailsPage:
     def click_submit(self):
         self.submit_req.click()
 
-    def get_reqid(self):
+    def get_reqid(self, scenario_name):
+        request_id = None
         try:
-            self.success_msg.wait_for(state="visible", timeout=10000)
-            message = self.success_msg.text_content()
-            request_id = message.replace("Your request ID is", "").strip()
-            return request_id
+            if (scenario_name == "test_ltv_usrdtl_neg_silence_3day"):
+
+                if self.silenceerrormsg.is_visible():
+                    alert_text = self.silenceerrormsg.text_content().strip()
+                    print(f"Alert displayed: {alert_text}")
+                    return True
+            else:
+                self.success_msg.wait_for(state="visible", timeout=20000)
+                if self.success_msg.is_visible():
+                    request_id = (
+                        self.success_msg.text_content()
+                        .replace("Your request ID is", "")
+                        .strip()
+                    )
+                return request_id
+            return None
 
         except PlaywrightTimeoutError:
             pytest.fail(

@@ -388,5 +388,20 @@
         "ToDate": 5,
         "CoordinatorEmail": null,
         "Reason": "Test automation creating request for Stay Extension"
+    },
+    "test_ltv_usrdtl_neg_silence_3day": {
+        "EmailId": null,
+        "CountryCode": "in",
+        "PhoneNumber": "9988776655",
+        "Name": "Test5User",
+        "VolunteerCategory": "LTV",
+        "DepartureDate": "Dec 31, 2026",
+        "Category": "Silence",
+        "SubCategory": "3 Day Silence",
+        "ProgramDate": null,
+        "FromDate": 3,
+        "ToDate": 5,
+        "CoordinatorEmail": "testauto@coordinator.com",
+        "Reason": "Test automation creating request for Silence for 3 days"
     }
 }

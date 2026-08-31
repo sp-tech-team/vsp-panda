@@ -40,6 +40,7 @@ class FindUserPage:
             self.find_user_by_email(email_scenario['EmailId'])
 
         if email_scenario.get('PhoneNumber') is not None:
+            print("Searching by phone number")
             self.find_user_by_phn_num(
                 email_scenario['CountryCode'],
                 email_scenario['PhoneNumber']
