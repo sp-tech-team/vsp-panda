@@ -32,9 +32,9 @@ def test_av_usrdtl(page, scenario_name):
     assert result is not None
 
 
-# def test_av_usrdtl_stayext(page, scenario_name):
-
-#     scenario = data["test_av_usrdtl_stayext"]
+# def test_av_usrdtl_stayext(page):
+#     scenario_name = "test_av_usrdtl_stayext"
+#     scenario = data[scenario_name]
 #     user_dtls_page = UserDetailsPage(page)
 #     find_user_page = FindUserPage(page)
 
