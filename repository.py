@@ -1285,7 +1285,7 @@ class RequestRepository:
 
     def __init__(self) -> None:
         sheet = get_google_sheet()
-        self._worksheet = sheet.worksheet("Requests")
+        self._worksheet = sheet.worksheet(REQUESTS_WORKSHEET)
 
     def get_existing_ids(self) -> list[str]:
         return load_request_ids()

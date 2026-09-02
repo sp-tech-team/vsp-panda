@@ -299,7 +299,6 @@ def show_subcategory_selection(col) -> None:
                                         volunteer.volunteer_category)
 
         subcategory_options = {subcategory.name: subcategory for subcategory in filtered_subcategories}
-
         required_label("📌 Sub Category")
         input_subcategory_name = st.selectbox(
             "", # ** No longer relevant

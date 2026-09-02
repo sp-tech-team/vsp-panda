@@ -117,31 +117,87 @@ def get_country_code_map() -> list[CountryCode]:
 
     return country_codes
 
-def generate_request_id(vol_cat_code: str, existing_requests: list[str]):
+# def generate_request_id(vol_cat_code: str, existing_requests: list[str]):
+#     full_prefix = f"REQ-{vol_cat_code}"
+
+#     existing_numbers = sorted([
+#         int(request_id.replace(full_prefix, "")) for request_id in existing_requests 
+#         if request_id.startswith(full_prefix) and request_id.replace(full_prefix, "").isdigit()
+#     ])
+
+#     next_number = 1
+#     for num in existing_numbers:
+#         if num == next_number:
+#             next_number += 1
+#         else:
+#             break
+
+#     if next_number > 99999:
+#         for _ in range(10000):
+#             random_alnum = ''.join(random.choices(string.ascii_uppercase + string.digits, k=5))
+#             request_id = f"{full_prefix}{random_alnum}"
+#             if request_id not in existing_requests:
+#                 return request_id
+#         return f"{full_prefix}XXXXX"
+
+#     request_id = f"{full_prefix}{next_number:05d}"
+#     return request_id
+
+def generate_request_id(vol_cat_code: str, existing_requests: list[str]) -> str:
     full_prefix = f"REQ-{vol_cat_code}"
 
-    existing_numbers = sorted([
-        int(request_id.replace(full_prefix, "")) for request_id in existing_requests 
-        if request_id.startswith(full_prefix) and request_id.replace(full_prefix, "").isdigit()
-    ])
+    # Normalize existing request IDs.
+    # This protects against None values, non-string values,
+    # and accidental spaces in Google Sheet data.
+    existing_requests_set = {
+        str(request_id).strip()
+        for request_id in existing_requests
+        if request_id is not None
+    }
 
-    next_number = 1
-    for num in existing_numbers:
-        if num == next_number:
-            next_number += 1
-        else:
-            break
+    # Extract the numeric portion of existing IDs for this category.
+    existing_numbers = set()
 
-    if next_number > 99999:
-        for _ in range(10000):
-            random_alnum = ''.join(random.choices(string.ascii_uppercase + string.digits, k=5))
-            request_id = f"{full_prefix}{random_alnum}"
-            if request_id not in existing_requests:
-                return request_id
-        return f"{full_prefix}XXXXX"
+    for request_id in existing_requests_set:
+        if not request_id.startswith(full_prefix):
+            continue
 
-    request_id = f"{full_prefix}{next_number:05d}"
-    return request_id
+        number_part = request_id[len(full_prefix):]
+
+        if number_part.isdigit():
+            number = int(number_part)
+
+            # Only consider IDs in the valid numeric range.
+            if 1 <= number <= 99999:
+                existing_numbers.add(number)
+
+    # Find the first available numeric ID.
+    for next_number in range(1, 100000):
+        request_id = f"{full_prefix}{next_number:05d}"
+
+        # Check both the numeric set and the actual IDs.
+        # The second check provides an additional safety check.
+        if next_number not in existing_numbers and request_id not in existing_requests_set:
+            return request_id
+
+    # All numeric IDs from 00001 to 99999 are already used.
+    # Generate a random 5-character alphanumeric ID instead.
+    for _ in range(10000):
+        random_alnum = ''.join(
+            random.choices(
+                string.ascii_uppercase + string.digits,
+                k=5
+            )
+        )
+
+        request_id = f"{full_prefix}{random_alnum}"
+
+        if request_id not in existing_requests_set:
+            return request_id
+
+    # Extremely unlikely fallback if all random attempts collide.
+    return f"{full_prefix}XXXXX"
+
 
 # region read appsettings.json
 
