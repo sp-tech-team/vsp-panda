@@ -300,7 +300,7 @@ VOLUNTEER_CATEGORY_REQUEST_LABEL = "Request Label"
 
 # Volunteers
 
-VOLUNTEERS_WORKSHEET = "Volunteers"
+VOLUNTEERS_WORKSHEET = "Volunteer Details"
 
 # Volunteers Header
 
