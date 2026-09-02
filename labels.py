@@ -117,7 +117,7 @@ PROGRAM_DURATION_IN_DAYS = "Duration In Days"
 
 # Program Dates
 
-PROGRAM_DATES_WORKSHEET = "Program Dates"
+PROGRAM_DATES_WORKSHEET = "Program Dates1"
 
 # Program Dates Header
 
@@ -163,7 +163,7 @@ ROOM_IS_ACTIVE = "Is Active"
 
 # Requests
 
-REQUESTS_WORKSHEET = "Requests"
+REQUESTS_WORKSHEET = "Requests_new"
 
 # Requests Header
 
