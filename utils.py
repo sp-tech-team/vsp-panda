@@ -100,7 +100,7 @@ def parse_date(value: Any) -> date | None:
     if not value:
         return None
 
-    return datetime.strptime(value, "%m/%d/%Y").date() # ** Need to move to settings
+    return datetime.strptime(value, "%d/%m/%Y").date() # ** Need to move to settings
 
 def get_country_code_map() -> list[CountryCode]:
     """Generate country code list (Without Flags)"""
