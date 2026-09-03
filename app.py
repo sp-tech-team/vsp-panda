@@ -14,6 +14,28 @@ import time
 from entities import Bathroom, FloorNum, Log, Request, Room, Shower, StayArea, SubCategory
 from repository import BathroomRepository, BunkNumRepository, CategoryRepository, FloorNumRepository, LogRepository, ParameterRepository, RoomRepository, RequestRepository, SettingRepository, ShowerRepository, StayAreaRepository, SubCategoryRepository, VolunteerCategoryRepository, VolunteerRepository
 
+
+import logging
+import streamlit as st
+
+from db_logger import PostgreSQLHandler
+
+
+logger = logging.getLogger("vsp_panda")
+logger.setLevel(logging.INFO)
+
+# Terminal logging
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+
+# Neon PostgreSQL logging
+db_handler = PostgreSQLHandler()
+db_handler.setLevel(logging.INFO)
+
+# Add handlers
+logger.addHandler(console_handler)
+logger.addHandler(db_handler)
+
 bathroom_repo = BathroomRepository()
 bunk_num_repo = BunkNumRepository()
 category_repo = CategoryRepository()
@@ -27,6 +49,7 @@ stay_area_repo = StayAreaRepository ()
 subcategory_repo = SubCategoryRepository()
 vol_cat_repo = VolunteerCategoryRepository()
 volunteer_repo = VolunteerRepository()
+StayExtensionCatIdFromTable = utils.get_setting("StayExtensionCatIdFromTable")
 
 
 if "volunteer_identified" in st.session_state and st.session_state["volunteer_identified"]:
@@ -94,37 +117,58 @@ def show_volunteer_email_identification() -> None:
                 volunteer = st.session_state["volunteer"]
 
                 # Log the identification success
-                log_repo = LogRepository()
+                logger.exception(
+                                    f"Identified user." + 
+                                    f"Visit ID: {volunteer.visit_id} | " + 
+                                    f"Person ID: {volunteer.person_id} | " + 
+                                    f"Volunteer ID: {volunteer.volunteer_id}",
+                                    extra={
+                                        "ip_address": utils.get_client_ip(),
+                                        "vol_email_id": volunteer.email_id if volunteer else "",
+                                        "vol_phone_num": volunteer.phone_number if volunteer else "",
+                                    }
+                                )
+                # log_repo = LogRepository()
 
-                now: datetime = datetime.now()
-                log: Log = Log(
-                    log_id = f"L-{now.strftime("%y%m%d-%H%M%S")}",
-                    ip_address = utils.get_client_ip(),
-                    email_id = volunteer.email_id,
-                    phone_number = volunteer.phone_number,
-                    message = f"Identified user." + 
-                                f"Visit ID: {volunteer.visit_id} | " + 
-                                f"Person ID: {volunteer.person_id} | " + 
-                                f"Volunteer ID: {volunteer.volunteer_id}",
-                    timestamp = now
-                )
-                log_repo.write_to_sheet(log)
+                # now: datetime = datetime.now()
+                # log: Log = Log(
+                #     log_id = f"L-{now.strftime("%y%m%d-%H%M%S")}",
+                #     ip_address = utils.get_client_ip(),
+                #     email_id = volunteer.email_id,
+                #     phone_number = volunteer.phone_number,
+                #     message = f"Identified user." + 
+                #                 f"Visit ID: {volunteer.visit_id} | " + 
+                #                 f"Person ID: {volunteer.person_id} | " + 
+                #                 f"Volunteer ID: {volunteer.volunteer_id}",
+                #     timestamp = now
+                # )
+                # log_repo.write_to_sheet(log)
 
                 st.rerun()
 
         st.error("❌ Email ID does not exist in the database.")
 
         # Log the identification failure
-        log_repo = LogRepository()
 
-        now: datetime = datetime.now()
-        log: Log = Log(
-            log_id = f"L-{now.strftime("%y%m%d-%H%M%S")}",
-            ip_address = utils.get_client_ip(),
-            message = f"Failed to identify user. Email: {email}. {return_msg}",
-            timestamp = now
-        )
-        log_repo.write_to_sheet(log)
+        logger.exception(
+                        f"Failed to identify user. Email: {email}. {return_msg}",
+                        extra={
+                                "ip_address": utils.get_client_ip(),
+                                "vol_email_id": email,
+                                "vol_phone_num": "",
+                                }
+                    )
+
+        # log_repo = LogRepository()
+
+        # now: datetime = datetime.now()
+        # log: Log = Log(
+        #     log_id = f"L-{now.strftime("%y%m%d-%H%M%S")}",
+        #     ip_address = utils.get_client_ip(),
+        #     message = f"Failed to identify user. Email: {email}. {return_msg}",
+        #     timestamp = now
+        # )
+        # log_repo.write_to_sheet(log)
         
 def show_forgot_email_button() -> None:
     """Render the 'Forgot Email' button."""
@@ -176,16 +220,26 @@ def show_volunteer_phone_identification() -> None:
             st.warning(f"⚠️ {warning.value}")
 
             # Log the identification failure
-            log_repo = LogRepository()
 
-            now: datetime = datetime.now()
-            log: Log = Log(
-                log_id = f"L-{now.strftime("%y%m%d-%H%M%S")}",
-                ip_address = utils.get_client_ip(),
-                message = f"Failed to identify user. Phone: {phone_number}. {return_msg}",
-                timestamp = now
-            )
-            log_repo.write_to_sheet(log)
+            logger.error(
+                            f"Failed to identify user. Phone: {phone_number}. {return_msg}",
+                            extra={
+                                    "ip_address": utils.get_client_ip(),
+                                    "vol_email_id": "",
+                                    "vol_phone_num": phone_number,
+                                  }
+                        )
+
+            # log_repo = LogRepository()
+
+            # now: datetime = datetime.now()
+            # log: Log = Log(
+            #     log_id = f"L-{now.strftime("%y%m%d-%H%M%S")}",
+            #     ip_address = utils.get_client_ip(),
+            #     message = f"Failed to identify user. Phone: {phone_number}. {return_msg}",
+            #     timestamp = now
+            # )
+            # log_repo.write_to_sheet(log)
 
             if st.button("🔄 Retry"):
                 st.session_state["forgot_email_clicked"] = False
@@ -199,21 +253,34 @@ def show_volunteer_phone_identification() -> None:
         st.session_state["volunteer_identified"] = True
 
         # Log the identification success
-        log_repo = LogRepository()
 
-        now: datetime = datetime.now()
-        log: Log = Log(
-            log_id = f"L-{now.strftime("%y%m%d-%H%M%S")}",
-            ip_address = utils.get_client_ip(),
-            email_id = volunteer.email_id,
-            phone_number = volunteer.phone_number,
-            message = f"Identified user." + 
-                        f"Visit ID: {volunteer.visit_id} | " + 
-                        f"Person ID: {volunteer.person_id} | " + 
-                        f"Volunteer ID: {volunteer.volunteer_id}",
-            timestamp = now
-        )
-        log_repo.write_to_sheet(log)
+        logger.info(
+                    f"Identified user." + 
+                    f"Visit ID: {volunteer.visit_id} | " + 
+                    f"Person ID: {volunteer.person_id} | " + 
+                    f"Volunteer ID: {volunteer.volunteer_id}",
+                        extra={
+                                "ip_address": utils.get_client_ip(),
+                                "vol_email_id": volunteer.email_id,
+                                "vol_phone_num": volunteer.phone_number,
+                              }
+                    )
+
+        # log_repo = LogRepository()
+
+        # now: datetime = datetime.now()
+        # log: Log = Log(
+        #     log_id = f"L-{now.strftime("%y%m%d-%H%M%S")}",
+        #     ip_address = utils.get_client_ip(),
+        #     email_id = volunteer.email_id,
+        #     phone_number = volunteer.phone_number,
+        #     message = f"Identified user." + 
+        #                 f"Visit ID: {volunteer.visit_id} | " + 
+        #                 f"Person ID: {volunteer.person_id} | " + 
+        #                 f"Volunteer ID: {volunteer.volunteer_id}",
+        #     timestamp = now
+        # )
+        # log_repo.write_to_sheet(log)
 
         st.rerun()
 
@@ -322,12 +389,14 @@ def show_subcategory_selection(col) -> None:
 
 def render_dynamic_dropdowns(sub_cat: SubCategory) -> None:
     dynamic_dropdowns = []
-    for index, field_name in enumerate(sub_cat.dynamic_dropdown_fields):
-        dynamic_dropdowns.append({
-            "name": field_name,
-            "is_req": True,
-            "key_name": f"ddl_{index}"
-        })
+
+    if sub_cat.dynamic_dropdown_fields != []:
+        for index, field_name in enumerate(sub_cat.dynamic_dropdown_fields):
+            dynamic_dropdowns.append({
+                "name": field_name,
+                "is_req": True,
+                "key_name": f"ddl_{index}"
+            })
 
     st.session_state["dynamic_dropdowns"] = dynamic_dropdowns
 
@@ -643,7 +712,8 @@ def show_custom_date_fields(subcategory: SubCategory) -> None:
             required_label("📅 From Date")
             from_date = st.date_input("", format="DD/MM/YYYY", key="from_date",
                                       label_visibility="collapsed",
-                                      max_value=max_date_value,)
+                                      max_value=max_date_value,
+                                      min_value=date.today(),)
 
             to_date_value = from_date + timedelta(days = subcategory.duration_in_days if subcategory.duration_in_days > 0 else 1)
 
@@ -872,9 +942,16 @@ def show_submit_button():
             st.error("❌ From Date cannot be later than To Date.")
             validation_results.append(False)
 
-        if (from_date >= volunteer.departure_date or 
-            to_date >= volunteer.departure_date):
-            st.error("❌ Input date cannot be later than your departure date. Please request extension if needed.")
+        if from_date >= volunteer.departure_date and st.session_state.get("input_category", "").category_id != StayExtensionCatIdFromTable:
+            st.error("❌ From date cannot be later than your departure date. Please request extension if needed.")
+            validation_results.append(False)
+
+        if to_date >= volunteer.departure_date and st.session_state.get("input_category", "").category_id != StayExtensionCatIdFromTable:
+            st.error("❌ To date cannot be later than your departure date. Please request extension if needed.")
+            validation_results.append(False)
+
+        if ( from_date != volunteer.departure_date or to_date <= volunteer.departure_date ) and st.session_state.get("input_category", "").category_id == StayExtensionCatIdFromTable:
+            st.error("❌ From date should be your current depature date and To date should be later than your current depature date.")
             validation_results.append(False)
         
 
@@ -907,18 +984,27 @@ def show_submit_button():
     time.sleep(10) # without delay appscript gets confused about whether request, or log table is modified
 
     # Log the request generation success
-    log_repo = LogRepository()
 
-    now: datetime = datetime.now()
-    log: Log = Log(
-        log_id = f"L-{now.strftime("%y%m%d-%H%M%S")}",
-        ip_address = utils.get_client_ip(),
-        email_id = volunteer.email_id,
-        phone_number = volunteer.phone_number,
-        message = f"Request raised. Request ID: {req.request_id}",
-        timestamp = now
-    )
-    log_repo.write_to_sheet(log)
+    logger.info(
+                f"Request raised. Request ID: {req.request_id}",
+                extra={
+                        "ip_address": utils.get_client_ip(),
+                        "vol_email_id": volunteer.email_id if volunteer else "",
+                        "vol_phone_num": volunteer.phone_number if volunteer else "",
+                      }
+                )
+    # log_repo = LogRepository()
+
+    # now: datetime = datetime.now()
+    # log: Log = Log(
+    #     log_id = f"L-{now.strftime("%y%m%d-%H%M%S")}",
+    #     ip_address = utils.get_client_ip(),
+    #     email_id = volunteer.email_id,
+    #     phone_number = volunteer.phone_number,
+    #     message = f"Request raised. Request ID: {req.request_id}",
+    #     timestamp = now
+    # )
+    # log_repo.write_to_sheet(log)
 
     return req
 
@@ -945,6 +1031,17 @@ def validate_required(value: Any, error_message: str) -> bool:
         return False
 
     return True
+
+def reset_accomodation_req_flags():
+    """
+    Resets accomodation required flags, which are being used by validate method to be determine what is required.
+    """
+
+    st.session_state.pop("is_stay_area_req", None)
+    st.session_state.pop("is_room_req", None)
+    st.session_state.pop("is_bathroom_req", None)
+    st.session_state.pop("is_floor_num_req", None)
+    st.session_state.pop("is_shower_req", None)
 
 def save_record():
     request_repo = RequestRepository()
@@ -1148,6 +1245,12 @@ def reset_req_flags():
     st.session_state.pop("is_health_related_bool_req", None)
     st.session_state.pop("is_coordinator_email_req", None)
 
+    st.session_state.pop("is_stay_area_req", None)
+    st.session_state.pop("is_room_req", None)
+    st.session_state.pop("is_bathroom_req", None)
+    st.session_state.pop("is_floor_num_req", None)
+    st.session_state.pop("is_shower_req", None)
+
 def required_label(label: str) -> None:
     st.markdown(
         f"""
@@ -1289,9 +1392,11 @@ if __name__ == "__main__":
                     accomodation_id = setting_repo.get_by_key("ACCOMODATION_CATEGORY_ID")
                     if input_category.category_id == accomodation_id.value:
                         show_accomodation_fields()
+                    else:
+                        reset_accomodation_req_flags()
 
                 input_subcategory = st.session_state.get("input_subcategory")
-                if input_subcategory != None:
+                if input_subcategory != None and input_subcategory != '':
                     render_dynamic_dropdowns(input_subcategory)
                     render_dynamic_textbox(input_subcategory)
                     if input_category.has_programs:
@@ -1332,17 +1437,25 @@ if __name__ == "__main__":
     except Exception as e: 
         # Log the error
         volunteer = st.session_state.get("volunteer")
+        logger.exception(
+                    "Failed while processing request",
+                    extra={
+                        "ip_address": utils.get_client_ip(),
+                        "vol_email_id": volunteer.email_id if volunteer else "",
+                        "vol_phone_num": volunteer.phone_number if volunteer else "",
+                    }
+                )
+        
+        # log_repo = LogRepository()
 
-        log_repo = LogRepository()
-
-        now: datetime = datetime.now()
-        log: Log = Log(
-            log_id = f"L-{now.strftime("%y%m%d-%H%M%S")}",
-            ip_address = utils.get_client_ip(),
-            email_id = volunteer.email_id if volunteer else "",
-            phone_number = volunteer.phone_number if volunteer else "",
-            message = f"An error occurred. Error: {str(e)}",
-            exception = traceback.format_exc(),
-            timestamp = now
-        )
-        log_repo.write_to_sheet(log)
+        # now: datetime = datetime.now()
+        # log: Log = Log(
+        #     log_id = f"L-{now.strftime("%y%m%d-%H%M%S")}",
+        #     ip_address = utils.get_client_ip(),
+        #     email_id = volunteer.email_id if volunteer else "",
+        #     phone_number = volunteer.phone_number if volunteer else "",
+        #     message = f"An error occurred. Error: {str(e)}",
+        #     exception = traceback.format_exc(),
+        #     timestamp = now
+        # )
+        # log_repo.write_to_sheet(log)
