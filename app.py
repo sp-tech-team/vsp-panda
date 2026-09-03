@@ -366,15 +366,52 @@ def show_subcategory_selection(col) -> None:
                                         volunteer.volunteer_category)
 
         subcategory_options = {subcategory.name: subcategory for subcategory in filtered_subcategories}
+        subcategory_names = list(subcategory_options.keys())
+
+        subcategory_names = list(subcategory_options.keys())
+
+        if not subcategory_names:
+            # No subcategories
+            options = ["No applicable values to select"]
+            index = 0
+            disabled = True
+            placeholder = None
+
+        elif len(subcategory_names) == 1:
+            # Only one subcategory - preselect it
+            options = subcategory_names
+            index = 0
+            disabled = False
+            placeholder = None
+
+        else:
+            # Multiple subcategories - ask user to select
+            options = subcategory_names
+            index = None
+            disabled = False
+            placeholder = "Select Sub Category"
+
         required_label("📌 Sub Category")
         input_subcategory_name = st.selectbox(
-            "", # ** No longer relevant
-            list(subcategory_options.keys()),
-            index = 0 if len(list(subcategory_options.keys())) == 1 else None, # Preselect if only 1 option is there
-            key = "input_subcategory_name",
-            label_visibility = "collapsed",
-            placeholder = "Select Sub Category"
+            "",
+            options,
+            index=index,
+            key="input_subcategory_name",
+            label_visibility="collapsed",
+            disabled=disabled,
+            placeholder=placeholder
         )
+
+        
+        # input_subcategory_name = st.selectbox(
+        #     "", # ** No longer relevant
+        #     subcategory_names,
+        #     index = 0 if len(list(subcategory_options.keys())) == 1 else None, # Preselect if only 1 option is there
+        #     key = "input_subcategory_name",
+        #     label_visibility = "collapsed",
+        #     disabled=not bool(subcategory_options),
+        #     placeholder = "Select Sub Category"
+        # )
 
         if (input_subcategory_name is not None) and (input_subcategory_name in subcategory_options):
             input_subcategory = subcategory_options[input_subcategory_name]
