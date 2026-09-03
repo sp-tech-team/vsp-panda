@@ -85,6 +85,23 @@ def phone_numbers_match(
 
     return normalized_stored == normalized_input
 
+# def parse_date(value: Any) -> date | None:
+#     """Convert a Google Sheets date value to a date."""
+#     if value is None:
+#         return None
+
+#     if isinstance(value, datetime):
+#         return value.date()
+
+#     if isinstance(value, date):
+#         return value
+
+#     value = str(value).strip()
+#     if not value:
+#         return None
+
+#     return datetime.strptime(value, "%d/%m/%Y").date() # ** Need to move to settings
+
 def parse_date(value: Any) -> date | None:
     """Convert a Google Sheets date value to a date."""
     if value is None:
@@ -100,7 +117,31 @@ def parse_date(value: Any) -> date | None:
     if not value:
         return None
 
-    return datetime.strptime(value, "%d/%m/%Y").date() # ** Need to move to settings
+    # Try supported date formats
+    date_formats = (
+        "%d/%m/%Y",       # 11/09/2026
+        "%d-%m-%Y",       # 11-09-2026
+        "%Y-%m-%d",       # 2026-09-11
+        "%b %d, %Y",      # Sep 11, 2026
+        "%B %d, %Y",      # September 11, 2026
+        "%b %d",          # Sep 11
+        "%B %d",          # September 11
+    )
+
+    for date_format in date_formats:
+        try:
+            parsed_date = datetime.strptime(value, date_format)
+
+            # If the value doesn't contain a year, use the current year
+            if "%Y" not in date_format:
+                parsed_date = parsed_date.replace(year=datetime.now().year)
+
+            return parsed_date.date()
+
+        except ValueError:
+            continue
+
+    return None
 
 def get_country_code_map() -> list[CountryCode]:
     """Generate country code list (Without Flags)"""
