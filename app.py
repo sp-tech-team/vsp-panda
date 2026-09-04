@@ -975,6 +975,8 @@ def show_submit_button():
     to_date = st.session_state.get("input_to_date", None)
 
     if from_date and to_date:
+       # logger.info("abs((date2 - date1).days): %s", str(abs((to_date - from_date).days)))
+        
         if from_date >= to_date:
             st.error("❌ From Date cannot be later than To Date.")
             validation_results.append(False)
@@ -989,6 +991,10 @@ def show_submit_button():
 
         if ( from_date != volunteer.departure_date or to_date <= volunteer.departure_date ) and st.session_state.get("input_category", "").category_id == StayExtensionCatIdFromTable:
             st.error("❌ From date should be your current depature date and To date should be later than your current depature date.")
+            validation_results.append(False)
+
+        if( st.session_state.get("input_subcategory", "").duration_in_days > 0 and abs((to_date - from_date).days) != st.session_state.get("input_subcategory", "").duration_in_days ):
+            st.error(f"❌ The duration between From Date and To Date should be {st.session_state.get("input_subcategory", "").duration_in_days} days.")
             validation_results.append(False)
         
 
