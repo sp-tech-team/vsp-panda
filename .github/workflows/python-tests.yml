@@ -29,4 +29,4 @@ jobs:
     - name: Run tests with pytest
       working-directory: ./test_automation
       run: |
-        pytest tests/
+        pytest
