@@ -192,7 +192,7 @@ REQUESTS_TEAM_COMMENTS = "Team Comments"
 REQUESTS_CLOSED_BY = "Closed By"
 REQUESTS_CLOSED_ON = "Closed On"
 REQUESTS_REASSIGNED_BY = "Reassigned by"
-
+REQUESTS_HEALTH_RELATED_BOOL = "Is Health related"
 
 
 

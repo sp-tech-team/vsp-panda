@@ -826,9 +826,10 @@ def show_health_related_bool() -> None:
         return
 
     # Store as an actual boolean
-    st.session_state["input_health_related"] = (
-        health_related == "Yes"
-    )
+    if health_related == "Yes, health related" :
+        st.session_state["input_health_related"] = True
+    else:
+        st.session_state["input_health_related"] = False
 
 def show_description_box() -> None:
     """Render the description box."""
@@ -1107,7 +1108,7 @@ def save_record():
         program_date = st.session_state["input_program_date"]
         from_date, to_date = program_date.start_date, program_date.end_date
 
-    is_health_related = False
+    # is_health_related = False
     if subcategory is not None:
         if subcategory.show_from_date_input:
             from_date = st.session_state["input_from_date"]
@@ -1204,7 +1205,8 @@ def save_record():
         last_edited = timestamp,
 
         program_date_id = program_date.program_date_id if program_date is not None else None,
-        coordinator_email_id = coordinator_email
+        coordinator_email_id = coordinator_email,
+        is_health_related = is_health_related
     )
 
     request_repo.write_to_sheet(req)

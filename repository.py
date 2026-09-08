@@ -127,7 +127,8 @@ REQUESTS_HEADER = (
     REQUESTS_LAST_EDITED,
     REQUESTS_CLOSED_BY,
     REQUESTS_CLOSED_ON,
-    REQUESTS_REASSIGNED_BY
+    REQUESTS_REASSIGNED_BY,
+    REQUESTS_HEALTH_RELATED_BOOL
 )
 
 SETTINGS_HEADER = (
@@ -1329,6 +1330,7 @@ class RequestRepository:
             self._format_value(request.status),
             self._format_value(request.status_sub_type),
             self._format_value(request.last_edited),
+            self._format_value(request.is_health_related),
         ]
 
     def write_to_sheet(self, request: Request) -> None:
