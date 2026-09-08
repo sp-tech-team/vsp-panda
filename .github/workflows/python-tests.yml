@@ -1,4 +1,4 @@
-name: Run Python Tests
+name: Run browser tests
 
 on:
   push:
@@ -7,10 +7,19 @@ on:
     branches: [ "main" ]
   
   workflow_dispatch:
+    inputs:
+      base_url:
+        description: "Streamlit URL to test"
+        required: false
+        default: ""
+        type: string
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      CI: true
+      BASE_URL: ${{ inputs.base_url || vars.VSP_BASE_URL || 'https://vsp-panda.streamlit.app/' }}
 
     steps:
     - name: Checkout repository
@@ -25,10 +34,20 @@ jobs:
       working-directory: ./test_automation
       run: |
         python -m pip install --upgrade pip
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-        if [ -f requirements-test.txt ]; then pip install -r requirements-test.txt; fi
+        python -m pip install -r requirements-test.txt
+
+    - name: Install Playwright browser
+      run: python -m playwright install --with-deps chromium
 
     - name: Run tests with pytest
       working-directory: ./test_automation
       run: |
-        pytest
+        python -m pytest -v
+
+    - name: Upload failure screenshots
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: playwright-failure-screenshots
+        path: test_automation/screenshots/
+        if-no-files-found: ignore

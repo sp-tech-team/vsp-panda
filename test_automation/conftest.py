@@ -1,4 +1,4 @@
-import time
+import os
 import pytest
 from playwright.sync_api import sync_playwright
 from pathlib import Path
@@ -8,9 +8,7 @@ from pathlib import Path
 def browser():
     with sync_playwright() as p:
         browser = p.chromium.launch(
-            channel="chrome",  # optional
-            headless=False,
-            slow_mo=1000
+            headless=os.getenv("CI", "").lower() == "true"
         )
 
         yield browser
@@ -30,16 +28,16 @@ def context(browser):
 @pytest.fixture(scope="function")
 def page(context, request):
     page = context.new_page()
-    page.goto("https://vsp-panda.streamlit.app/")
-    # , wait_until="networkidle")
-    time.sleep(3)
-    spinner = page.locator("i")
-    spinner.wait_for(state="hidden")
+    base_url = os.getenv("BASE_URL", "https://vsp-panda.streamlit.app/")
+    page.goto(base_url, wait_until="domcontentloaded")
+    page.locator('iframe[title="streamlitApp"]').wait_for(
+        state="visible", timeout=60000
+    )
 
     yield page
 
     if hasattr(request.node, "rep_call") and request.node.rep_call.failed:
-        screenshots_dir = Path("screenshots")
+        screenshots_dir = Path(__file__).parent / "screenshots"
         screenshots_dir.mkdir(exist_ok=True)
 
         page.screenshot(
