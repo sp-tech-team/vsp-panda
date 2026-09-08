@@ -1,9 +1,9 @@
 {
     "test_user_search_with_valid_email": {
-        "EmailId": "vani.juvvala-ext@sadhguru.org",
+        "EmailId": "shawn@example.com",
         "CountryCode": null,
         "PhoneNumber": null,
-        "Name": "Vani Juvvala",
+        "Name": "Shawn Doe",
         "VolunteerCategory": "LTV",
         "DepartureDate": null,
         "Category": null,
@@ -18,7 +18,7 @@
     "test_user_search_with_valid_phn_number": {
         "EmailId": null,
         "CountryCode": "in",
-        "PhoneNumber": "9123456789",
+        "PhoneNumber": "9876543210",
         "Name": null,
         "VolunteerCategory": "AV",
         "DepartureDate": null,
