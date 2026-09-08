@@ -117,7 +117,7 @@ def show_volunteer_email_identification() -> None:
                 volunteer = st.session_state["volunteer"]
 
                 # Log the identification success
-                logger.exception(
+                logger.info(
                                     f"Identified user." + 
                                     f"Visit ID: {volunteer.visit_id} | " + 
                                     f"Person ID: {volunteer.person_id} | " + 
@@ -826,9 +826,10 @@ def show_health_related_bool() -> None:
         return
 
     # Store as an actual boolean
-    st.session_state["input_health_related"] = (
-        health_related == "Yes"
-    )
+    if health_related == "Yes, health related" :
+        st.session_state["input_health_related"] = True
+    else:
+        st.session_state["input_health_related"] = False
 
 def show_description_box() -> None:
     """Render the description box."""
@@ -1204,7 +1205,8 @@ def save_record():
         last_edited = timestamp,
 
         program_date_id = program_date.program_date_id if program_date is not None else None,
-        coordinator_email_id = coordinator_email
+        coordinator_email_id = coordinator_email,
+        is_health_related = is_health_related
     )
 
     request_repo.write_to_sheet(req)
@@ -1308,21 +1310,38 @@ def required_label(label: str) -> None:
     "Request Registered",
     dismissible=False,
 )
-def show_success_popup(request_id):
-    st.markdown(
-        f"""
-        <div style="text-align: center; padding: 10px 0 20px 0;">
-            <div style="font-size: 42px;">✅</div>
-            <div style="font-size: 18px; font-weight: 600; margin-top: 15px;">
-                Your request has been successfully registered.
+def show_success_popup(request_id,coordinator_email_required):
+    if(coordinator_email_required and st.session_state.get("input_coordinator_email", None) != None):
+        st.markdown(
+                    f"""
+                    <div style="text-align: center; padding: 10px 0 20px 0;">
+                        <div style="font-size: 42px;">✅</div>
+                        <div style="font-size: 18px; font-weight: 600; margin-top: 15px;">
+                            🔹 Please request your department coordinator to send an approval reply to this request mail for us to process it further.
+                                Once the reply email is received, We will respond within 48 hours.
+                        </div>
+                        <div style="font-size: 16px; font-weight: 600; margin-top: 10px;">
+                            Your request ID is <u><strong>{request_id}</strong></u>
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )    
+    else :
+        st.markdown(
+            f"""
+            <div style="text-align: center; padding: 10px 0 20px 0;">
+                <div style="font-size: 42px;">✅</div>
+                <div style="font-size: 18px; font-weight: 600; margin-top: 15px;">
+                    Your request has been successfully registered.
+                </div>
+                <div style="font-size: 16px; font-weight: 600; margin-top: 10px;">
+                    Your request ID is <u><strong>{request_id}</strong></u>
+                </div>
             </div>
-            <div style="font-size: 16px; font-weight: 600; margin-top: 10px;">
-                Your request ID is <u><strong>{request_id}</strong></u>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+            """,
+            unsafe_allow_html=True,
+        )
 
     st.markdown(
         """
@@ -1467,7 +1486,7 @@ if __name__ == "__main__":
                 req = show_submit_button()
 
                 if req:
-                    show_success_popup(req.request_id)
+                    show_success_popup(req.request_id,input_subcategory.show_coordinator_email_input)
 
                 # send emails
                 # if req:

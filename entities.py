@@ -161,6 +161,7 @@ class Request:
     closed_on: date | None = None # not from streamlit
     closed_by: str | None = None # not from streamlit
     reassigned_by: str | None = None # not from streamlit
+    is_health_related: bool = False
 
     def __str__(self) -> str:
         return f"{self.request_id} - {self.request_type} | {self.name} <{self.email_id}> <{self.phone_number}>"
