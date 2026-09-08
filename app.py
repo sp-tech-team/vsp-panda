@@ -117,7 +117,7 @@ def show_volunteer_email_identification() -> None:
                 volunteer = st.session_state["volunteer"]
 
                 # Log the identification success
-                logger.exception(
+                logger.info(
                                     f"Identified user." + 
                                     f"Visit ID: {volunteer.visit_id} | " + 
                                     f"Person ID: {volunteer.person_id} | " + 
