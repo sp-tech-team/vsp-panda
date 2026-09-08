@@ -115,7 +115,7 @@ def show_volunteer_email_identification() -> None:
 
             if st.session_state.get("volunteer_identified"):
                 volunteer = st.session_state["volunteer"]
-
+                print("above user identified log")
                 # Log the identification success
                 logger.info(
                                     f"Identified user." + 
@@ -128,6 +128,7 @@ def show_volunteer_email_identification() -> None:
                                         "vol_phone_num": volunteer.phone_number if volunteer else "",
                                     }
                                 )
+                print("logger info", logger)
                 # log_repo = LogRepository()
 
                 # now: datetime = datetime.now()
@@ -752,7 +753,7 @@ def show_custom_date_fields(subcategory: SubCategory) -> None:
                                       max_value=max_date_value,
                                       min_value=date.today(),)
 
-            to_date_value = from_date + timedelta(days = subcategory.duration_in_days if subcategory.duration_in_days > 0 else 1)
+            to_date_value = from_date + timedelta(days = subcategory.duration_in_days - 1 if subcategory.duration_in_days - 1 > 0 else 1)
 
     with (col1 if not subcategory.show_from_date_input else col2): # both columns should be used only when both date fields need to be shown
         if subcategory.show_to_date_input:
@@ -994,7 +995,7 @@ def show_submit_button():
             st.error("❌ From date should be your current depature date and To date should be later than your current depature date.")
             validation_results.append(False)
 
-        if( st.session_state.get("input_subcategory", "").duration_in_days > 0 and abs((to_date - from_date).days) != st.session_state.get("input_subcategory", "").duration_in_days ):
+        if( st.session_state.get("input_subcategory", "").duration_in_days > 0 and abs((to_date - from_date).days) + 1 != st.session_state.get("input_subcategory", "").duration_in_days ):
             st.error(f"❌ The duration between From Date and To Date should be {st.session_state.get("input_subcategory", "").duration_in_days} days.")
             validation_results.append(False)
         
