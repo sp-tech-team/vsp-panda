@@ -26,17 +26,24 @@ from db_logger import PostgreSQLHandler
 logger = logging.getLogger("vsp_panda")
 logger.setLevel(logging.INFO)
 
-# Terminal logging
-console_handler = logging.StreamHandler()
-console_handler.setLevel(logging.INFO)
+def setup_logger():
 
-# Neon PostgreSQL logging
-db_handler = PostgreSQLHandler()
-db_handler.setLevel(logging.INFO)
+    if logger.handlers:
+        return
 
-# Add handlers
-logger.addHandler(console_handler)
-logger.addHandler(db_handler)
+    # Terminal logging
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+
+    # Neon PostgreSQL logging
+    db_handler = PostgreSQLHandler()
+    db_handler.setLevel(logging.INFO)
+
+    logger.addHandler(console_handler)
+    logger.addHandler(db_handler)
+
+
+setup_logger()
 
 bathroom_repo = BathroomRepository()
 bunk_num_repo = BunkNumRepository()
