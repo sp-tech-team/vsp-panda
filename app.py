@@ -13,7 +13,9 @@ import time
 
 from entities import Bathroom, FloorNum, Log, Request, Room, Shower, StayArea, SubCategory
 from repository import BathroomRepository, BunkNumRepository, CategoryRepository, FloorNumRepository, LogRepository, ParameterRepository, RoomRepository, RequestRepository, SettingRepository, ShowerRepository, StayAreaRepository, SubCategoryRepository, VolunteerCategoryRepository, VolunteerRepository
+from zoneinfo import ZoneInfo
 
+IST = ZoneInfo("Asia/Kolkata")
 
 import logging
 import streamlit as st
@@ -115,7 +117,6 @@ def show_volunteer_email_identification() -> None:
 
             if st.session_state.get("volunteer_identified"):
                 volunteer = st.session_state["volunteer"]
-                print("above user identified log")
                 # Log the identification success
                 logger.info(
                                     f"Identified user." + 
@@ -128,7 +129,6 @@ def show_volunteer_email_identification() -> None:
                                         "vol_phone_num": volunteer.phone_number if volunteer else "",
                                     }
                                 )
-                print("logger info", logger)
                 # log_repo = LogRepository()
 
                 # now: datetime = datetime.now()
@@ -322,7 +322,7 @@ def show_category_selection(col) -> None:
 
         required_label("📌 I want to reach out to:")
         input_category_name = st.selectbox(
-            "", # ** No longer relevant
+            ".", # ** No longer relevant
             list(category_options.keys()),
             index=None,
             key="input_category_name",
@@ -1183,7 +1183,7 @@ def save_record():
     if is_health_related == True:
         description += f"\n#Health"
 
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    timestamp = datetime.now(IST).strftime("%Y-%m-%d %H:%M:%S")
     existing_request_ids = request_repo.get_existing_ids()
     req = Request(
         request_id = utils.generate_request_id(vol_cat.request_label, existing_request_ids),
