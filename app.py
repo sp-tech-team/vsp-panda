@@ -45,6 +45,23 @@ def setup_logger():
 
 setup_logger()
 
+st.set_page_config(
+    page_title="VSP Panda",
+    layout="wide"
+)
+
+st.markdown(
+    """
+    <style>
+    /* Hide the entire Streamlit top-right toolbar */
+    div[data-testid="stToolbar"] {
+        display: none !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 bathroom_repo = BathroomRepository()
 bunk_num_repo = BunkNumRepository()
 category_repo = CategoryRepository()
