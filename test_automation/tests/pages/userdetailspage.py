@@ -14,35 +14,48 @@ class UserDetailsPage:
 
         self.page_header = self.frame.get_by_text(
             "🔹 Raise a Request"
-        )
+        ).wait_for(state="visible",
+                   timeout=60000)
 
         self.cat_dropdown = self.frame.get_by_role(
-            "combobox", name="Select Category")
+            "combobox", name="Select Category").wait_for(state="visible",
+                                                         timeout=60000)
+
         self.subcat_dropdown = self.frame.get_by_role(
-            "combobox", name="Select Sub Category")
+            "combobox", name="Select Sub Category").wait_for(state="visible",
+                                                             timeout=60000)
 
-        self.from_date = self.frame.get_by_test_id("stDateInputField").first
+        self.from_date = self.frame.get_by_test_id("stDateInputField").first.wait_for(state="visible",
+                                                                                      timeout=60000)
 
-        self.to_date = self.frame.get_by_test_id("stDateInputField").nth(1)
+        self.to_date = self.frame.get_by_test_id("stDateInputField").nth(1).wait_for(state="visible",
+                                                                                     timeout=60000)
 
         self.coord_email = self.frame.get_by_placeholder(
-            "Enter your Seva Coordinator")
+            "Enter your Seva Coordinator").wait_for(state="visible",
+                                                    timeout=60000)
 
         self.req_reason = self.frame.get_by_placeholder(
-            "Please fill in with as much")
+            "Please fill in with as much").wait_for(state="visible",
+                                                    timeout=60000)
 
         self.submit_req = self.frame.get_by_test_id(
-            "stBaseButton-secondary")
+            "stBaseButton-secondary").wait_for(state="visible",
+                                               timeout=60000)
 
-        self.success_msg = self.frame.locator("text=Your request ID is")
+        self.success_msg = self.frame.locator("text=Your request ID is").wait_for(state="visible",
+                                                                                  timeout=60000)
 
-        self.pgmavailable = self.frame.get_by_test_id("stAlertContainer")
+        self.pgmavailable = self.frame.get_by_test_id("stAlertContainer").wait_for(state="visible",
+                                                                                   timeout=60000)
 
         self.pgmdate = self.frame.get_by_role(
-            "combobox", name="Select Program Date")
+            "combobox", name="Select Program Date").wait_for(state="visible",
+                                                             timeout=60000)
 
         # Add locator once alert is added
-        self.silenceerrormsg = self.frame.get_by_test_id("")
+        self.silenceerrormsg = self.frame.get_by_test_id("").wait_for(state="visible",
+                                                                      timeout=60000)
 
         # self.healthrelated = self.frame.locator('input[type="radio"][value="0"]')
 

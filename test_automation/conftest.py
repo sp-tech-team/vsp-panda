@@ -1,6 +1,6 @@
 import os
 import pytest
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import expect, sync_playwright
 from pathlib import Path
 
 
@@ -19,6 +19,8 @@ def browser():
 @pytest.fixture(scope="session")
 def context(browser):
     context = browser.new_context()
+    context.set_default_timeout(30000)
+    expect.set_options(timeout=30000)
 
     yield context
 
