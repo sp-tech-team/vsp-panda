@@ -105,7 +105,7 @@ def show_volunteer_email_identification() -> None:
 
     required_label("📧 Email ID")
     email = st.text_input(
-        "",
+        ".",
         placeholder="Enter your email ID",
         label_visibility="collapsed",
         key="email_id"
@@ -197,7 +197,7 @@ def show_volunteer_phone_identification() -> None:
                                     )
 
     required_label("🌍 Select Country Code")
-    input_country = st.selectbox("", country_codes, 
+    input_country = st.selectbox(".", country_codes, 
                                     index=default_country_code_index, 
                                     label_visibility="collapsed",
                                     placeholder="Select country code",
@@ -206,7 +206,7 @@ def show_volunteer_phone_identification() -> None:
 
     required_label("📞 Phone Number")
     phone_number = st.text_input(
-        "",
+        ".",
         placeholder="Enter phone number without country code",
         label_visibility="collapsed",
         key="phone_number"
@@ -401,7 +401,7 @@ def show_subcategory_selection(col) -> None:
 
         required_label("📌 Sub Category")
         input_subcategory_name = st.selectbox(
-            "",
+            ".",
             options,
             index=index,
             key="input_subcategory_name",
@@ -514,7 +514,7 @@ def show_accomodation_fields() -> None:
 
         required_label("Stay Area")
         input_stay_area_name = st.selectbox(
-            "", # ** No longer relevant
+            ".", # ** No longer relevant
             list(stay_areas_options.keys()),
             index=None,
             key="input_stay_area_name",
@@ -579,7 +579,7 @@ def show_accomodation_fields() -> None:
 
         required_label("Bathrooms")
         input_bathroom_name = st.selectbox(
-            "", # ** No longer relevant
+            ".", # ** No longer relevant
             list(bathrooms_options.keys()),
             index=None,
             key="input_bathroom_name",
@@ -610,7 +610,7 @@ def show_accomodation_fields() -> None:
 
         required_label("Floor Number")
         input_floor_num_name = st.selectbox(
-            "", # ** No longer relevant
+            ".", # ** No longer relevant
             list(floor_nums_options.keys()),
             index=None,
             key="input_floor_num_name",
@@ -642,7 +642,7 @@ def show_accomodation_fields() -> None:
 
         required_label("Showers")
         input_shower_name = st.selectbox(
-            "", # ** No longer relevant
+            ".", # ** No longer relevant
             list(showers_options.keys()),
             index=None,
             key="input_shower_name",
@@ -725,7 +725,7 @@ def show_program_dates_selection() -> None:
 
     required_label("📅 Select Program Date")
     input_date = st.selectbox(
-        "",
+        ".",
         program_dates,
         index = None,
         key = "input_date",
@@ -792,7 +792,7 @@ def show_coordinator_email_input() -> None:
 
     required_label("📧 Seva Coordinator Mail ID")
     coordinator_email = st.text_input(
-        "",
+        ".",
         placeholder="Enter your Seva Coordinator Mail ID",
         value=st.session_state.get("coordinator_email", ""),
         key="coordinator_email",
@@ -849,7 +849,7 @@ def show_description_box() -> None:
 
     required_label("📝 Reason for your request")
     description = st.text_area(
-        "",
+        ".",
         placeholder="Please fill in with as much detail as possible",
         height=150,
         key="description",
