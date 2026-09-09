@@ -12,7 +12,7 @@ service_account.json
 .streamlit/secrets.toml
 
 # Streamlit
-.streamlit/
+#.streamlit/
 
 # IDE
 .vscode/
