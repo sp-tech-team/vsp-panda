@@ -807,10 +807,10 @@ def show_coordinator_email_input() -> None:
     # I am assuming that if this function will be called only when coordinator email is required.
     st.session_state["is_coordinator_email_req"] = True
 
-    required_label("📧 Seva Coordinator Mail ID")
+    required_label("📧 Karma Sadhana Coordinator Mail ID")
     coordinator_email = st.text_input(
         ".",
-        placeholder="Enter your Seva Coordinator Mail ID",
+        placeholder="Enter your Karma Sadhana Coordinator Mail ID",
         value=st.session_state.get("coordinator_email", ""),
         key="coordinator_email",
         label_visibility="collapsed",
@@ -1202,7 +1202,7 @@ def save_record():
             description += f"\n{field["name"]}: {value}"
 
     if coordinator_email and not coordinator_email.isspace():
-        description += f"\nSeva Coordinator Mail ID: {coordinator_email}"
+        description += f"\Karma Sadhana Coordinator Mail ID: {coordinator_email}"
 
     if is_health_related == True:
         description += f"\n#Health"
