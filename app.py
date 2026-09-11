@@ -327,6 +327,37 @@ def show_volunteer_details() -> None:
     with col2:
         st.write(f"**Volunteer Category:** {volunteer.volunteer_category}") 
 
+def get_categories_with_subcategories(
+    categories,
+    volunteer,
+    subcategory_repo
+):
+    valid_categories = []
+
+    for category in categories:
+
+        if category.has_programs:
+            filtered_subcategories = (
+                subcategory_repo.get_by_category_and_gender(
+                    category.category_id,
+                    volunteer.gender,
+                    volunteer.volunteer_category
+                )
+            )
+        else:
+            filtered_subcategories = (
+                subcategory_repo.get_by_category_id_for_vol_cat(
+                    category.category_id,
+                    volunteer.volunteer_category
+                )
+            )
+
+        # Keep category only if it has at least one sub-category
+        if filtered_subcategories:
+            valid_categories.append(category)
+
+    return valid_categories
+
 def show_category_selection(col) -> None:
     """Render the category selection flow."""
     with col:
@@ -336,7 +367,13 @@ def show_category_selection(col) -> None:
             return
 
         categories = category_repo.get_active_categories()
-        category_options = {category.category: category for category in categories}
+        logger.info("categories %s" ,   categories)
+        filtered_categories = get_categories_with_subcategories(
+                            categories,
+                            volunteer,
+                            subcategory_repo
+                        )
+        category_options = {category.category: category for category in filtered_categories}
 
         # To debug what is there in the session state
         # st.write("CATEGORY STATE:", {
