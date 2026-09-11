@@ -402,6 +402,9 @@ def show_subcategory_selection(col) -> None:
             disabled = True
             placeholder = None
 
+            st.warning("⚠️ The selected category is inapplicable to you, kindly change it. ")
+            return        
+
         elif len(subcategory_names) == 1:
             # Only one subcategory - preselect it
             options = subcategory_names
