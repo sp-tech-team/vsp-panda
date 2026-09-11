@@ -17,31 +17,25 @@ with open(json_file, "r") as f:
     ids=data.keys()
 )
 def test_ltv_usrdtl(page, scenario_name):
-
     scenario = data[scenario_name]
-
     find_user_page = FindUserPage(page)
     user_dtls_page = UserDetailsPage(page)
-
     find_user_page.search_user(scenario)
     user_dtls_page.enter_request(scenario)
-
     result = user_dtls_page.get_reqid(scenario_name)
     print(f"Scenario: {scenario}")
     print(f"Result is: {result}")
     assert result is not None
+# def test_ltv_usrdtl_silence_3day(page, scenario_name):
 
-
-# def test_ltv_usrdtl_stayext(page, scenario_name):
-
-#     scenario = data["test_ltv_usrdtl_stayext"]
+#     scenario = data["test_ltv_usrdtl_silence_3day"]
 #     user_dtls_page = UserDetailsPage(page)
 #     find_user_page = FindUserPage(page)
 
 #     find_user_page.search_user(scenario)
 #     user_dtls_page.enter_request(scenario)
 
-#     result = user_dtls_page.get_reqid(scenario_name)
+#     result = user_dtls_page.get_reqid("test_ltv_usrdtl_silence_3day")
 #     print(f"Scenario: {scenario}")
 #     print(f"Result is: {result}")
 #     assert result is not None

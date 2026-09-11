@@ -15,16 +15,14 @@ class FindUserPage:
         )
 
         self.forgot_email = self.frame.get_by_test_id("stBaseButton-secondary")
-
-        self.country_code = self.frame.get_by_role(
-            "combobox", name="Select country code")
+        self.country_code = self.frame.get_by_role("combobox", name=".")
 
         self.phn_number = self.frame.get_by_placeholder(
-            "Enter phone number without country code"
-        )
-        self.email_req = self.frame.get_by_text("Please enter your email ID.")
-        self.email_error = self.frame.get_by_text("Email ID does not exist in")
+            "Enter phone number without")
 
+        self.email_req = self.frame.get_by_text("Please enter your email ID.")
+
+        self.email_error = self.frame.get_by_text("Email ID does not exist in")
         self.phn_error_msg = self.frame.get_by_text(
             "Phone number does not exist in the database.")
 

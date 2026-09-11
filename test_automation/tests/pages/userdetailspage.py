@@ -16,33 +16,37 @@ class UserDetailsPage:
             "🔹 Raise a Request"
         )
 
-        self.cat_dropdown = self.frame.get_by_role(
-            "combobox", name="Select Category")
-        self.subcat_dropdown = self.frame.get_by_role(
-            "combobox", name="Select Sub Category")
+        self.cat_dropdown = self.frame.get_by_placeholder("Select Category")
+
+        self.subcat_dropdown = self.frame.get_by_placeholder(
+            "Select Sub Category")
+
+        self.choose_option = self.frame.get_by_placeholder("Choose an option")
 
         self.from_date = self.frame.get_by_test_id("stDateInputField").first
-
         self.to_date = self.frame.get_by_test_id("stDateInputField").nth(1)
 
-        self.coord_email = self.frame.get_by_placeholder(
-            "Enter your Seva Coordinator")
+        self.coord_email = self.frame.get_by_test_id(
+            "stTextInputRootElement").get_by_role("textbox", name=".")
 
-        self.req_reason = self.frame.get_by_placeholder(
-            "Please fill in with as much")
+        self.req_reason = self.frame.get_by_test_id(
+            "stTextAreaRootElement").get_by_role("textbox", name=".")
 
         self.submit_req = self.frame.get_by_test_id(
             "stBaseButton-secondary")
 
         self.success_msg = self.frame.locator("text=Your request ID is")
 
-        self.pgmavailable = self.frame.get_by_test_id("stAlertContainer")
+        self.pgmavailable = self.frame.get_by_text(
+            "No dates available for the")
 
-        self.pgmdate = self.frame.get_by_role(
-            "combobox", name="Select Program Date")
+        self.pgmdate = self.frame.get_by_placeholder("Select Program Date")
+
+        self.pgmdeptdate = self.frame.get_by_text("Active program dates are")
 
         # Add locator once alert is added
-        self.silenceerrormsg = self.frame.get_by_test_id("")
+        self.silenceerrormsg = self.frame.get_by_text(
+            "The duration between From")
 
         # self.healthrelated = self.frame.locator('input[type="radio"][value="0"]')
 
@@ -65,7 +69,11 @@ class UserDetailsPage:
 
     def enter_request(self, testdata):
         self.select_category(testdata['Category'])
-        if (testdata['SubCategory'] is not None):
+
+        if ((testdata['VolunteerCategory'] == "Ashram Volunteer") or (testdata['VolunteerCategory'] == "Short Term Department Support")) and (testdata['SubCategory'] == "3 Day Silence"):
+            self.page.keyboard.press("Enter")
+
+        elif (testdata['SubCategory'] is not None):
             self.select_subcategory(testdata['SubCategory'])
         else:
             pytest.skip(
@@ -76,8 +84,11 @@ class UserDetailsPage:
                 pytest.skip(
                     "Program is not available. Skipping this scenario.")
 
+            if self.pgmdeptdate.is_visible():
+                pytest.skip(
+                    "Program after departure date. Skipping this scenario.")
+
             self.select_prgmdates()
-            self.pgmdate.fill(testdata["ProgramDate"])
 
         if (testdata["FromDate"] is not None):
             self.select_from_to_date(
@@ -109,15 +120,22 @@ class UserDetailsPage:
         self.page.keyboard.press("Enter")
 
     def select_subcategory(self, subcategory):
-        self.subcat_dropdown.wait_for(state="visible", timeout=30000)
-        self.subcat_dropdown.click()
-        self.subcat_dropdown.fill(subcategory)
-        self.page.keyboard.press("Enter")
+        if subcategory in ["Arogya", "Meet Sahaya Team", "Karma Sadhana Support", "1 Day city visit", "Stay Extension"]:
+            self.choose_option.wait_for(state="visible", timeout=30000)
+            self.choose_option.click()
+            self.choose_option.fill(subcategory)
+            self.page.keyboard.press("Enter")
+        else:
+            self.subcat_dropdown.wait_for(state="visible", timeout=30000)
+            self.subcat_dropdown.click()
+            self.subcat_dropdown.fill(subcategory)
+            self.page.keyboard.press("Enter")
         # if (subcategory in ("Break", "Exit", "1 Day city visit")):
         # self.healthrelated.check()
         # self.page.get_by_label("Yes").click()
 
     def select_prgmdates(self):
+        self.page.keyboard.press("Tab")
         self.pgmdate.click()
         self.pgmdate.press("ArrowDown")
         self.pgmdate.press("Enter")
@@ -161,24 +179,21 @@ class UserDetailsPage:
         self.submit_req.click()
 
     def get_reqid(self, scenario_name):
-        request_id = None
         try:
-            if (scenario_name == "test_ltv_usrdtl_neg_silence_3day"):
+            if scenario_name == "test_ltv_usrdtl_neg_silence_3day":
+                if not self.silenceerrormsg.is_visible():
+                    return None
 
-                if self.silenceerrormsg.is_visible():
-                    alert_text = self.silenceerrormsg.text_content().strip()
-                    print(f"Alert displayed: {alert_text}")
-                    return True
-            else:
-                self.success_msg.wait_for(state="visible", timeout=20000)
-                if self.success_msg.is_visible():
-                    request_id = (
-                        self.success_msg.text_content()
-                        .replace("Your request ID is", "")
-                        .strip()
-                    )
-                return request_id
-            return None
+                alert_text = self.silenceerrormsg.text_content().strip()
+                print(f"Alert displayed: {alert_text}")
+                return True
+
+            self.success_msg.wait_for(state="visible", timeout=20000)
+            return (
+                self.success_msg.text_content()
+                .replace("Your request ID is", "")
+                .strip()
+            )
 
         except PlaywrightTimeoutError:
             pytest.fail(
