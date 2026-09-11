@@ -14,21 +14,6 @@
         "CoordinatorEmail": "testauto@coordinator.com",
         "Reason": "Test automation creating request for Silence for 3 days"
     },
-    "test_stv_usrdtl_silence_5day": {
-        "EmailId": null,
-        "CountryCode": "in",
-        "PhoneNumber": "9876543211",
-        "Name": "Pohn Doe",
-        "VolunteerCategory": "Short Term Department Support",
-        "DepartureDate": "Jan 03,2027",
-        "Category": "Silence",
-        "SubCategory": null,
-        "ProgramDate": null,
-        "FromDate": 5,
-        "ToDate": 5,
-        "CoordinatorEmail": "testauto@coordinator.com",
-        "Reason": "Test automation creating request for Silence for 5 days"
-    },
     "test_stv_usrdtl_health_arogya": {
         "EmailId": "pohn@example.com",
         "CountryCode": null,
@@ -36,13 +21,13 @@
         "Name": "Pohn Doe",
         "VolunteerCategory": "Short Term Department Support",
         "DepartureDate": "Jan 03,2027",
-        "Category": "Health",
+        "Category": "Arogya",
         "SubCategory": "Arogya",
         "ProgramDate": null,
         "FromDate": null,
         "ToDate": null,
         "CoordinatorEmail": null,
-        "Reason": "Test automation creating request for Health and Arogya"
+        "Reason": "Test automation creating request for Arogya and Arogya"
     },
     "test_stv_usrdtl_exitbrk_exit": {
         "EmailId": "pohn@example.com",
@@ -73,51 +58,6 @@
         "ToDate": 2,
         "CoordinatorEmail": "testauto@coordinator.com",
         "Reason": "Test automation creating request for Exit/Break and Travel for Dept. activity"
-    },
-    "test_stv_usrdtl_idcard_new": {
-        "EmailId": "pohn@example.com",
-        "CountryCode": null,
-        "PhoneNumber": null,
-        "Name": "Pohn Doe",
-        "VolunteerCategory": "Short Term Department Support",
-        "DepartureDate": "Jan 03,2027",
-        "Category": "ID Card",
-        "SubCategory": null,
-        "ProgramDate": null,
-        "FromDate": null,
-        "ToDate": null,
-        "CoordinatorEmail": null,
-        "Reason": "Test automation creating request for Id Card - New card"
-    },
-    "test_stv_usrdtl_idcard_lost": {
-        "EmailId": "pohn@example.com",
-        "CountryCode": null,
-        "PhoneNumber": null,
-        "Name": "Pohn Doe",
-        "VolunteerCategory": "Short Term Department Support",
-        "DepartureDate": "Jan 03,2027",
-        "Category": "ID Card",
-        "SubCategory": null,
-        "ProgramDate": null,
-        "FromDate": null,
-        "ToDate": null,
-        "CoordinatorEmail": null,
-        "Reason": "Test automation creating request for Id Card - Lost card"
-    },
-    "test_stv_usrdtl_idcard_renew": {
-        "EmailId": "pohn@example.com",
-        "CountryCode": null,
-        "PhoneNumber": null,
-        "Name": "Pohn Doe",
-        "VolunteerCategory": "Short Term Department Support",
-        "DepartureDate": "Jan 03,2027",
-        "Category": "ID Card",
-        "SubCategory": null,
-        "ProgramDate": null,
-        "FromDate": null,
-        "ToDate": null,
-        "CoordinatorEmail": null,
-        "Reason": "Test automation creating request for Id Card - Renew card"
     },
     "test_stv_usrdtl_meetsahaya": {
         "EmailId": "pohn@example.com",
@@ -340,7 +280,7 @@
         "SubCategory": "1 Day city visit",
         "ProgramDate": null,
         "FromDate": 1,
-        "ToDate": 1,
+        "ToDate": null,
         "CoordinatorEmail": "testauto@coordinator.com",
         "Reason": "Test automation creating request for 1 day city visit"
     },
@@ -358,20 +298,5 @@
         "ToDate": null,
         "CoordinatorEmail": null,
         "Reason": "Test automation creating request for Karma Sadhana Support"
-    },
-    "test_stv_usrdtl_stayext": {
-        "EmailId": "pohn@example.com",
-        "CountryCode": null,
-        "PhoneNumber": null,
-        "Name": "Pohn Doe",
-        "VolunteerCategory": "Short Term Department Support",
-        "DepartureDate": "Jan 03,2027",
-        "Category": "Stay Extension",
-        "SubCategory": "Stay Extension",
-        "ProgramDate": null,
-        "FromDate": 0,
-        "ToDate": 2,
-        "CoordinatorEmail": null,
-        "Reason": "Test automation creating request for Stay Extension"
     }
 }

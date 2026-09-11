@@ -8,43 +8,29 @@ class FindUserPage:
 
         self.page_header = self.frame.get_by_text(
             "🔹 Raise a Request"
-        ).wait_for(state="visible",
-                   timeout=60000)
+        )
 
         self.email_input = self.frame.get_by_placeholder(
             "Enter your email ID"
-        ).wait_for(state="visible",
-                   timeout=60000)
+        )
 
-        self.forgot_email = self.frame.get_by_test_id("stBaseButton-secondary").wait_for(state="visible",
-                                                                                         timeout=60000)
-
-        self.country_code = self.frame.get_by_role(
-            "combobox", name="Select country code").wait_for(state="visible",
-                                                             timeout=60000)
+        self.forgot_email = self.frame.get_by_test_id("stBaseButton-secondary")
+        self.country_code = self.frame.get_by_role("combobox", name=".")
 
         self.phn_number = self.frame.get_by_placeholder(
-            "Enter phone number without country code"
-        ).wait_for(state="visible",
-                   timeout=60000)
+            "Enter phone number without")
 
-        self.email_req = self.frame.get_by_text("Please enter your email ID.").wait_for(state="visible",
-                                                                                        timeout=60000)
+        self.email_req = self.frame.get_by_text("Please enter your email ID.")
 
-        self.email_error = self.frame.get_by_text("Email ID does not exist in").wait_for(state="visible",
-                                                                                         timeout=60000)
-
+        self.email_error = self.frame.get_by_text("Email ID does not exist in")
         self.phn_error_msg = self.frame.get_by_text(
-            "Phone number does not exist in the database.").wait_for(state="visible",
-                                                                     timeout=60000)
+            "Phone number does not exist in the database.")
 
         self.phn_num_req = self.frame.get_by_text(
-            "Phone number is required.").wait_for(state="visible",
-                                                  timeout=60000)
+            "Phone number is required.")
 
         self.counter_msg = self.frame.get_by_text(
-            "Please visit counter 23/24 at welcome point for further assistance with your request.").wait_for(state="visible",
-                                                                                                              timeout=60000)
+            "Please visit counter 23/24 at welcome point for further assistance with your request.")
 
     def search_user(self, email_scenario):
         if email_scenario.get('EmailId') is not None:
@@ -66,7 +52,6 @@ class FindUserPage:
     def wait_for_locator(self):
         spinner = self.page.locator("i")
         spinner.wait_for(state="hidden")
-        self.page_header.wait_for(state="visible")
 
     def find_user_by_phn_num(self, country_code, phone_number):
 

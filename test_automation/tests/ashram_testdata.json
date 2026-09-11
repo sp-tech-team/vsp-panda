@@ -10,24 +10,9 @@
         "SubCategory": "3 Day Silence",
         "ProgramDate": null,
         "FromDate": 3,
-        "ToDate": 3,
-        "CoordinatorEmail": "testauto@coordinator.com",
+        "ToDate": 2,
+        "CoordinatorEmail": null,
         "Reason": "Test automation creating request for Silence for 3 days"
-    },
-    "test_av_usrdtl_silence_5day": {
-        "EmailId": null,
-        "CountryCode": "in",
-        "PhoneNumber": "9876543210",
-        "Name": "John Doe",
-        "VolunteerCategory": "Ashram Volunteer",
-        "DepartureDate": "Jan 02,2027",
-        "Category": "Silence",
-        "SubCategory": null,
-        "ProgramDate": null,
-        "FromDate": 5,
-        "ToDate": 5,
-        "CoordinatorEmail": "testauto@coordinator.com",
-        "Reason": "Test automation creating request for Silence for 5 days"
     },
     "test_av_usrdtl_health_arogya": {
         "EmailId": "john@example.com",
@@ -36,13 +21,13 @@
         "Name": "John Doe",
         "VolunteerCategory": "Ashram Volunteer",
         "DepartureDate": "Jan 02,2027",
-        "Category": "Health",
+        "Category": "Arogya",
         "SubCategory": "Arogya",
         "ProgramDate": null,
         "FromDate": null,
         "ToDate": null,
         "CoordinatorEmail": null,
-        "Reason": "Test automation creating request for Health and Arogya"
+        "Reason": "Test automation creating request for Arogya and Arogya"
     },
     "test_av_usrdtl_exitbrk_exit": {
         "EmailId": "john@example.com",
@@ -74,51 +59,6 @@
         "CoordinatorEmail": null,
         "Reason": "Test automation creating request for Exit/Break and Travel for Dept. activity"
     },
-    "test_av_usrdtl_idcard_new": {
-        "EmailId": "john@example.com",
-        "CountryCode": null,
-        "PhoneNumber": null,
-        "Name": "John Doe",
-        "VolunteerCategory": "Ashram Volunteer",
-        "DepartureDate": "Jan 02,2027",
-        "Category": "ID Card",
-        "SubCategory": null,
-        "ProgramDate": null,
-        "FromDate": null,
-        "ToDate": null,
-        "CoordinatorEmail": null,
-        "Reason": "Test automation creating request for Id Card - New card"
-    },
-    "test_av_usrdtl_idcard_lost": {
-        "EmailId": "john@example.com",
-        "CountryCode": null,
-        "PhoneNumber": null,
-        "Name": "John Doe",
-        "VolunteerCategory": "Ashram Volunteer",
-        "DepartureDate": "Jan 02,2027",
-        "Category": "ID Card",
-        "SubCategory": null,
-        "ProgramDate": null,
-        "FromDate": null,
-        "ToDate": null,
-        "CoordinatorEmail": null,
-        "Reason": "Test automation creating request for Id Card - Lost card"
-    },
-    "test_av_usrdtl_idcard_renew": {
-        "EmailId": "john@example.com",
-        "CountryCode": null,
-        "PhoneNumber": null,
-        "Name": "John Doe",
-        "VolunteerCategory": "Ashram Volunteer",
-        "DepartureDate": "Jan 02,2027",
-        "Category": "ID Card",
-        "SubCategory": null,
-        "ProgramDate": null,
-        "FromDate": null,
-        "ToDate": null,
-        "CoordinatorEmail": null,
-        "Reason": "Test automation creating request for Id Card - Renew card"
-    },
     "test_av_usrdtl_meetsahaya": {
         "EmailId": "john@example.com",
         "CountryCode": null,
@@ -146,7 +86,7 @@
         "ProgramDate": "True",
         "FromDate": null,
         "ToDate": null,
-        "CoordinatorEmail": "testauto@coordinator.com",
+        "CoordinatorEmail": null,
         "Reason": "Test automation creating request for Other Karma Sadhana Opportunities and Prana Danam"
     },
     "test_av_usrdtl_othr_5dayls": {
@@ -161,7 +101,7 @@
         "ProgramDate": "True",
         "FromDate": null,
         "ToDate": null,
-        "CoordinatorEmail": "testauto@coordinator.com",
+        "CoordinatorEmail": null,
         "Reason": "Test automation creating request for Other Karma Sadhana Opportunities and 5 Day Linga seva"
     },
     "test_av_usrdtl_othr_10dayls": {
@@ -176,7 +116,7 @@
         "ProgramDate": "True",
         "FromDate": null,
         "ToDate": null,
-        "CoordinatorEmail": "testauto@coordinator.com",
+        "CoordinatorEmail": null,
         "Reason": "Test automation creating request for Other Karma Sadhana Opportunities and 10 Day Linga seva"
     },
     "test_av_usrdtl_othr_ds": {
@@ -191,7 +131,7 @@
         "ProgramDate": "True",
         "FromDate": null,
         "ToDate": null,
-        "CoordinatorEmail": "testauto@coordinator.com",
+        "CoordinatorEmail": null,
         "Reason": "Test automation creating request for Other Karma Sadhana Opportunities and Devi seva"
     },
     "test_av_usrdtl_othr_adiarpanam": {
@@ -206,7 +146,7 @@
         "ProgramDate": "True",
         "FromDate": null,
         "ToDate": null,
-        "CoordinatorEmail": "testauto@coordinator.com",
+        "CoordinatorEmail": null,
         "Reason": "Test automation creating request for Other Karma Sadhana Opportunities and Adiyogi Arpanam"
     },
     "test_av_usrdtl_pgmvol_bsp": {
@@ -221,7 +161,7 @@
         "ProgramDate": "True",
         "FromDate": null,
         "ToDate": null,
-        "CoordinatorEmail": "testauto@coordinator.com",
+        "CoordinatorEmail": null,
         "Reason": "Test automation creating request for Program volunteering and BSP"
     },
     "test_av_usrdtl_pgmvol_shoonya": {
@@ -236,7 +176,7 @@
         "ProgramDate": "True",
         "FromDate": null,
         "ToDate": null,
-        "CoordinatorEmail": "testauto@coordinator.com",
+        "CoordinatorEmail": null,
         "Reason": "Test automation creating request for Program volunteering and Shoonya"
     },
     "test_av_usrdtl_pgmvol_samyama": {
@@ -251,7 +191,7 @@
         "ProgramDate": "True",
         "FromDate": null,
         "ToDate": null,
-        "CoordinatorEmail": "testauto@coordinator.com",
+        "CoordinatorEmail": null,
         "Reason": "Test automation creating request for Program volunteering and Samyama"
     },
     "test_av_usrdtl_pgmvol_othrpgm": {
@@ -266,7 +206,7 @@
         "ProgramDate": "True",
         "FromDate": null,
         "ToDate": null,
-        "CoordinatorEmail": "testauto@coordinator.com",
+        "CoordinatorEmail": null,
         "Reason": "Test automation creating request for Program volunteering and Other Program"
     },
     "test_av_usrdtl_pgmpart_bsp": {
@@ -281,7 +221,7 @@
         "ProgramDate": null,
         "FromDate": null,
         "ToDate": null,
-        "CoordinatorEmail": "testauto@coordinator.com",
+        "CoordinatorEmail": null,
         "Reason": "Test automation creating request for Program participation and BSP"
     },
     "test_av_usrdtl_pgmpart_shoonya": {
@@ -296,7 +236,7 @@
         "ProgramDate": null,
         "FromDate": null,
         "ToDate": null,
-        "CoordinatorEmail": "testauto@coordinator.com",
+        "CoordinatorEmail": null,
         "Reason": "Test automation creating request for Program participation and Shoonya"
     },
     "test_av_usrdtl_pgmpart_samyama": {
@@ -311,7 +251,7 @@
         "ProgramDate": null,
         "FromDate": null,
         "ToDate": null,
-        "CoordinatorEmail": "testauto@coordinator.com",
+        "CoordinatorEmail": null,
         "Reason": "Test automation creating request for Program participation and Samyama"
     },
     "test_av_usrdtl_pgmpart_othrpgm": {
@@ -326,7 +266,7 @@
         "ProgramDate": null,
         "FromDate": null,
         "ToDate": null,
-        "CoordinatorEmail": "testauto@coordinator.com",
+        "CoordinatorEmail": null,
         "Reason": "Test automation creating request for Program participation and Other Program"
     },
     "test_av_usrdtl_1dayvisit": {
@@ -340,8 +280,8 @@
         "SubCategory": "1 Day city visit",
         "ProgramDate": null,
         "FromDate": 1,
-        "ToDate": 1,
-        "CoordinatorEmail": "testauto@coordinator.com",
+        "ToDate": null,
+        "CoordinatorEmail": null,
         "Reason": "Test automation creating request for 1 day city visit"
     },
     "test_av_usrdtl_kssupport": {
@@ -358,20 +298,5 @@
         "ToDate": null,
         "CoordinatorEmail": null,
         "Reason": "Test automation creating request for Karma Sadhana Support"
-    },
-    "test_av_usrdtl_stayext": {
-        "EmailId": "john@example.com",
-        "CountryCode": null,
-        "PhoneNumber": null,
-        "Name": "John Doe",
-        "VolunteerCategory": "Ashram Volunteer",
-        "DepartureDate": "Jan 02,2027",
-        "Category": "Stay Extension",
-        "SubCategory": "Stay Extension",
-        "ProgramDate": null,
-        "FromDate": 0,
-        "ToDate": 3,
-        "CoordinatorEmail": null,
-        "Reason": "Test automation creating request for Stay Extension"
     }
 }

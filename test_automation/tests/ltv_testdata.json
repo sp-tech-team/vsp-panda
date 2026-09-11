@@ -10,7 +10,7 @@
         "SubCategory": "3 Day Silence",
         "ProgramDate": null,
         "FromDate": 3,
-        "ToDate": 0,
+        "ToDate": 2,
         "CoordinatorEmail": "testauto@coordinator.com",
         "Reason": "Test automation creating request for Silence for 3 days"
     },
@@ -25,7 +25,7 @@
         "SubCategory": "5 Day Silence",
         "ProgramDate": null,
         "FromDate": 5,
-        "ToDate": 0,
+        "ToDate": 4,
         "CoordinatorEmail": "testauto@coordinator.com",
         "Reason": "Test automation creating request for Silence for 5 days"
     },
@@ -36,13 +36,13 @@
         "Name": "Shawn Doe",
         "VolunteerCategory": "Long Term Department Support",
         "DepartureDate": "Jan 04, 2027",
-        "Category": "Health",
+        "Category": "Arogya",
         "SubCategory": "Arogya",
         "ProgramDate": null,
         "FromDate": null,
         "ToDate": null,
         "CoordinatorEmail": null,
-        "Reason": "Test automation creating request for Health and Arogya"
+        "Reason": "Test automation creating request for Arogya and Arogya"
     },
     "test_ltv_usrdtl_exitbrk_exit": {
         "EmailId": "shawn@example.com",
@@ -296,7 +296,7 @@
         "ProgramDate": null,
         "FromDate": null,
         "ToDate": null,
-        "CoordinatorEmail": "testauto@coordinator.com",
+        "CoordinatorEmail": null,
         "Reason": "Test automation creating request for Program participation and BSP"
     },
     "test_ltv_usrdtl_pgmpart_shoonya": {
@@ -374,21 +374,6 @@
         "CoordinatorEmail": null,
         "Reason": "Test automation creating request for Karma Sadhana Support"
     },
-    "test_ltv_usrdtl_stayext": {
-        "EmailId": "test11user@gmail.com",
-        "CountryCode": null,
-        "PhoneNumber": null,
-        "Name": "Test11User",
-        "VolunteerCategory": "Long Term Department Support",
-        "DepartureDate": "Sep 02, 2026",
-        "Category": "Stay Extension",
-        "SubCategory": "Stay Extension",
-        "ProgramDate": null,
-        "FromDate": 0,
-        "ToDate": 5,
-        "CoordinatorEmail": null,
-        "Reason": "Test automation creating request for Stay Extension"
-    },
     "test_ltv_usrdtl_neg_silence_3day": {
         "EmailId": null,
         "CountryCode": "in",
@@ -400,7 +385,7 @@
         "SubCategory": "3 Day Silence",
         "ProgramDate": null,
         "FromDate": 3,
-        "ToDate": 5,
+        "ToDate": 8,
         "CoordinatorEmail": "testauto@coordinator.com",
         "Reason": "Test automation shouldn't be able to submit request for Silence."
     }
