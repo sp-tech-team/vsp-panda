@@ -737,7 +737,8 @@ def show_program_dates_selection() -> None:
         st.info(f"ℹ️ {info.value}")
 
     if not program_dates:
-        st.warning("No dates available for the selected program.")
+        #st.warning("No dates available for the selected program.")
+        st.warning("Active program dates are beyond your departure date. Please select a different program or raise stay extension request.")
         return
 
     required_label("📅 Select Program Date")
