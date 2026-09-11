@@ -1202,7 +1202,7 @@ def save_record():
             description += f"\n{field["name"]}: {value}"
 
     if coordinator_email and not coordinator_email.isspace():
-        description += f"\Karma Sadhana Coordinator Mail ID: {coordinator_email}"
+        description += f"\nKarma Sadhana Coordinator Mail ID: {coordinator_email}"
 
     if is_health_related == True:
         description += f"\n#Health"
