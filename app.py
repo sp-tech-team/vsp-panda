@@ -236,7 +236,7 @@ def show_volunteer_phone_identification() -> None:
 
         full_phone_number = f"+{input_country_code}{phone_number.strip()}"
 
-        volunteer, return_msg = volunteer_repo.get_latest_by_phone(full_phone_number, input_country.region)
+        volunteer, return_msg = volunteer_repo.get_latest_by_phone(full_phone_number, input_country.region,input_country_code,phone_number.strip())
 
         if volunteer is None or return_msg:
             st.error("❌ Phone number does not exist in the database.")
@@ -367,7 +367,6 @@ def show_category_selection(col) -> None:
             return
 
         categories = category_repo.get_active_categories()
-        logger.info("categories %s" ,   categories)
         filtered_categories = get_categories_with_subcategories(
                             categories,
                             volunteer,

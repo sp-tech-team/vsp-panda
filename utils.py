@@ -48,6 +48,7 @@ def normalize_phone_number(phone_number: str | None, region: str = "IN") -> str 
     except NumberParseException:
         return None
 
+
 def normalize_stored_phone_number(phone_number: str | None) -> str | None:
     """
     Normalize a phone number stored in the Volunteer sheet.
@@ -142,6 +143,89 @@ def parse_date(value: Any) -> date | None:
             continue
 
     return None
+
+def phone_numbers_match_new(gsheet_phone, ui_country_code, ui_phone):
+    try:
+        # -----------------------------
+        # Clean UI values
+        # Removes spaces, hyphens, +, brackets,
+        # and any other non-digit characters
+        # -----------------------------
+        country_code = "".join(
+            c for c in str(ui_country_code)
+            if c.isdigit()
+        ).strip()
+
+        phone = "".join(
+            c for c in str(ui_phone)
+            if c.isdigit()
+        ).strip()
+
+        if not country_code or not phone:
+            return False
+
+        # -----------------------------
+        # Build complete UI number
+        # -----------------------------
+        ui_number = f"+{country_code}{phone}"
+
+        # -----------------------------
+        # Clean GSheet number
+        # Removes spaces, hyphens, +, brackets,
+        # and any other non-digit characters
+        # -----------------------------
+        sheet = "".join(
+            c for c in str(gsheet_phone)
+            if c.isdigit()
+        ).strip()
+
+        if not sheet:
+            return False
+
+        # -----------------------------
+        # GSheet convention:
+        # 10 digits = Indian number without +91
+        # -----------------------------
+        if len(sheet) == 10:
+            sheet = "91" + sheet
+
+        sheet_number = f"+{sheet}"
+
+        # -----------------------------
+        # Parse both numbers
+        # -----------------------------
+        sheet_parsed = phonenumbers.parse(
+            sheet_number,
+            None
+        )
+
+        ui_parsed = phonenumbers.parse(
+            ui_number,
+            None
+        )
+
+        # -----------------------------
+        # Validate
+        # -----------------------------
+        if not phonenumbers.is_valid_number(sheet_parsed):
+            return False
+
+        if not phonenumbers.is_valid_number(ui_parsed):
+            return False
+
+        # -----------------------------
+        # Exact international match
+        # -----------------------------
+        return (
+            phonenumbers.is_number_match(
+                sheet_parsed,
+                ui_parsed
+            )
+            == phonenumbers.MatchType.EXACT_MATCH
+        )
+
+    except (NumberParseException, ValueError, TypeError):
+        return False
 
 def get_country_code_map() -> list[CountryCode]:
     """Generate country code list (Without Flags)"""
