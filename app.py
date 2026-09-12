@@ -1090,7 +1090,7 @@ def show_submit_button():
     with document_lock:
         req = save_record()
 
-    time.sleep(10) # without delay appscript gets confused about whether request, or log table is modified
+    # time.sleep(10) # without delay appscript gets confused about whether request, or log table is modified
 
     # Log the request generation success
 
@@ -1248,9 +1248,10 @@ def save_record():
         description += f"\n#Health"
 
     timestamp = datetime.now(IST).strftime("%Y-%m-%d %H:%M:%S")
-    existing_request_ids = request_repo.get_existing_ids()
+    #existing_request_ids = request_repo.get_existing_ids()
     req = Request(
-        request_id = utils.generate_request_id(vol_cat.request_label, existing_request_ids),
+        # request_id = utils.generate_request_id(vol_cat.request_label, existing_request_ids), old code for req id generation
+        request_id = utils.generate_request_id(vol_cat.request_label, volunteer.visit_id),
         person_id = volunteer.person_id,
         visit_id = volunteer.visit_id,
         name = volunteer.name,
