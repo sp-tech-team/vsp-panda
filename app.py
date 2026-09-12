@@ -1085,37 +1085,95 @@ def show_submit_button():
         )
         return
 
-    req: Request = None
-    document_lock = threading.Lock()
-    with document_lock:
-        req = save_record()
+# Full-screen loader
+    loader = st.empty()
 
-    # time.sleep(10) # without delay appscript gets confused about whether request, or log table is modified
+    loader.markdown(
+        """
+        <style>
+        .full-screen-loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(255, 255, 255, 0.85);
+            z-index: 999999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
 
-    # Log the request generation success
+        .loader-spinner {
+            width: 50px;
+            height: 50px;
+            border: 6px solid #ddd;
+            border-top: 6px solid #555;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
 
-    logger.info(
-                f"Request raised. Request ID: {req.request_id}",
-                extra={
-                        "ip_address": utils.get_client_ip(),
-                        "vol_email_id": volunteer.email_id if volunteer else "",
-                        "vol_phone_num": volunteer.phone_number if volunteer else "",
-                      }
-                )
-    # log_repo = LogRepository()
+        .loader-text {
+            margin-top: 20px;
+            font-size: 20px;
+            font-weight: 500;
+        }
 
-    # now: datetime = datetime.now()
-    # log: Log = Log(
-    #     log_id = f"L-{now.strftime("%y%m%d-%H%M%S")}",
-    #     ip_address = utils.get_client_ip(),
-    #     email_id = volunteer.email_id,
-    #     phone_number = volunteer.phone_number,
-    #     message = f"Request raised. Request ID: {req.request_id}",
-    #     timestamp = now
-    # )
-    # log_repo.write_to_sheet(log)
+        @keyframes spin {
+            0%   { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        </style>
 
-    return req
+        <div class="full-screen-loader">
+            <div class="loader-spinner"></div>
+            <div class="loader-text">Submitting request...</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    try:
+        req: Request = None
+        document_lock = threading.Lock()
+        with document_lock:
+            req = save_record()
+
+            # time.sleep(10) # without delay appscript gets confused about whether request, or log table is modified
+
+        # Log the request generation success
+
+        logger.info(
+                    f"Request raised. Request ID: {req.request_id}",
+                    extra={
+                            "ip_address": utils.get_client_ip(),
+                            "vol_email_id": volunteer.email_id if volunteer else "",
+                            "vol_phone_num": volunteer.phone_number if volunteer else "",
+                        }
+                    )
+
+        # Remove full-screen loader
+        loader.empty()
+
+        # log_repo = LogRepository()
+
+        # now: datetime = datetime.now()
+        # log: Log = Log(
+        #     log_id = f"L-{now.strftime("%y%m%d-%H%M%S")}",
+        #     ip_address = utils.get_client_ip(),
+        #     email_id = volunteer.email_id,
+        #     phone_number = volunteer.phone_number,
+        #     message = f"Request raised. Request ID: {req.request_id}",
+        #     timestamp = now
+        # )
+        # log_repo.write_to_sheet(log)
+
+        return req
+    except Exception:
+        # Remove loader even if something fails
+        loader.empty()
+        raise
 
 def show_help_text(help_text: str) -> None:
     """Render the help text."""
