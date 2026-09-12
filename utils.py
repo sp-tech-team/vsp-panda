@@ -284,7 +284,9 @@ def generate_request_id(vol_cat_code: str, visit_id:str) -> str:
     # }
     current_time = datetime.now(IST).strftime("%H%M")
     print("current_time",current_time)
+    print("visit_id",visit_id[-6:])
     request_id = f"{full_prefix}{visit_id[-6:]}-{current_time}"
+    print("request_id",request_id)
     return request_id
     # Extract the numeric portion of existing IDs for this category.
     # existing_numbers = set()
