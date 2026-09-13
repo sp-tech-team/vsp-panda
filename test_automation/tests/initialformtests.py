@@ -52,17 +52,17 @@ def test_enter_invalid_email_shows_error(page):
     expect(find_user_page.email_error).to_be_visible()
 
 
-# def test_user_search_diff_country_code_phn(page):
-#     country_code_scenario = data["test_user_search_diff_country_code_phn"]
-#     find_user_page = FindUserPage(page)
-#     user_dtls_page = UserDetailsPage(page)
-#     find_user_page.forgot_email.click()
-#     find_user_page.find_user_by_phn_num(
-#         country_code_scenario['CountryCode'], country_code_scenario['PhoneNumber'])
-#     find_user_page.wait_for_locator()
-#     vol_category = user_dtls_page.get_volunteer_category(
-#         country_code_scenario["VolunteerCategory"])
-#     expect(vol_category).to_be_visible()
+def test_user_search_diff_country_code_phn(page):
+    country_code_scenario = data["test_user_search_diff_country_code_phn"]
+    find_user_page = FindUserPage(page)
+    user_dtls_page = UserDetailsPage(page)
+    find_user_page.forgot_email.click()
+    find_user_page.find_user_by_phn_num(
+        country_code_scenario['CountryCode'], country_code_scenario['PhoneNumber'])
+    find_user_page.wait_for_locator()
+    vol_category = user_dtls_page.get_volunteer_category(
+        country_code_scenario["VolunteerCategory"])
+    expect(vol_category).to_be_visible()
 
 
 def test_invalid_email_phn_number_validation(page):
