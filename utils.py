@@ -282,7 +282,7 @@ def generate_request_id(vol_cat_code: str, visit_id:str) -> str:
     #     for request_id in existing_requests
     #     if request_id is not None
     # }
-    current_time = datetime.now(IST).strftime("%H%M")
+    current_time = datetime.now(IST).strftime("%H%M%f")[:9]
     print("current_time",current_time)
     print("visit_id",visit_id[-6:])
     request_id = f"{full_prefix}{visit_id[-6:]}-{current_time}"
