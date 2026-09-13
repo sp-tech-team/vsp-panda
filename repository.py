@@ -12,6 +12,7 @@ from utils import (
     normalize_phone_number,
     parse_date,
     phone_numbers_match,
+    phone_numbers_match_new,
 )
 import utils
 from labels import *
@@ -1600,21 +1601,36 @@ class VolunteerRepository:
 
         return volunteer, return_msg
             
-    def get_latest_by_phone(self, phone_number: str, region: str = "IN") -> Volunteer | None:
+    def get_latest_by_phone(self, phone_number: str, region: str = "IN", country_code: str = "+91",input_phonenum: str = "") -> Volunteer | None:
         """Return the latest Volunteer record matching a phone number."""
         normalized_input = normalize_phone_number(phone_number, region)
 
         if normalized_input is None:
             return None, ""
 
+        # matches = [
+        #     volunteer
+        #     for volunteer in self._volunteers
+        #     if phone_numbers_match(
+        #         volunteer.phone_number,
+        #         normalized_input,
+        #     )
+        # ]
+
         matches = [
-            volunteer
-            for volunteer in self._volunteers
-            if phone_numbers_match(
-                volunteer.phone_number,
-                normalized_input,
-            )
-        ]
+                    volunteer
+                    for volunteer in self._volunteers
+                    
+                    if phone_numbers_match_new(
+                                volunteer.phone_number,
+                                country_code,
+                                input_phonenum
+                            )
+                ]
+        
+
+        
+        print("matches %s", matches)
 
         volunteer = self._select_latest_volunteer_record(matches)
         

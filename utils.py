@@ -9,9 +9,12 @@ import string
 
 import phonenumbers
 from phonenumbers import NumberParseException
+from datetime import date
 
 from entities import CountryCode, Request
+from zoneinfo import ZoneInfo
 
+IST = ZoneInfo("Asia/Kolkata")
 
 def normalize_email(email: str | None) -> str | None:
     """Normalize an email address for comparison."""
@@ -47,6 +50,7 @@ def normalize_phone_number(phone_number: str | None, region: str = "IN") -> str 
         )
     except NumberParseException:
         return None
+
 
 def normalize_stored_phone_number(phone_number: str | None) -> str | None:
     """
@@ -143,6 +147,89 @@ def parse_date(value: Any) -> date | None:
 
     return None
 
+def phone_numbers_match_new(gsheet_phone, ui_country_code, ui_phone):
+    try:
+        # -----------------------------
+        # Clean UI values
+        # Removes spaces, hyphens, +, brackets,
+        # and any other non-digit characters
+        # -----------------------------
+        country_code = "".join(
+            c for c in str(ui_country_code)
+            if c.isdigit()
+        ).strip()
+
+        phone = "".join(
+            c for c in str(ui_phone)
+            if c.isdigit()
+        ).strip()
+
+        if not country_code or not phone:
+            return False
+
+        # -----------------------------
+        # Build complete UI number
+        # -----------------------------
+        ui_number = f"+{country_code}{phone}"
+
+        # -----------------------------
+        # Clean GSheet number
+        # Removes spaces, hyphens, +, brackets,
+        # and any other non-digit characters
+        # -----------------------------
+        sheet = "".join(
+            c for c in str(gsheet_phone)
+            if c.isdigit()
+        ).strip()
+
+        if not sheet:
+            return False
+
+        # -----------------------------
+        # GSheet convention:
+        # 10 digits = Indian number without +91
+        # -----------------------------
+        if len(sheet) == 10:
+            sheet = "91" + sheet
+
+        sheet_number = f"+{sheet}"
+
+        # -----------------------------
+        # Parse both numbers
+        # -----------------------------
+        sheet_parsed = phonenumbers.parse(
+            sheet_number,
+            None
+        )
+
+        ui_parsed = phonenumbers.parse(
+            ui_number,
+            None
+        )
+
+        # -----------------------------
+        # Validate
+        # -----------------------------
+        if not phonenumbers.is_valid_number(sheet_parsed):
+            return False
+
+        if not phonenumbers.is_valid_number(ui_parsed):
+            return False
+
+        # -----------------------------
+        # Exact international match
+        # -----------------------------
+        return (
+            phonenumbers.is_number_match(
+                sheet_parsed,
+                ui_parsed
+            )
+            == phonenumbers.MatchType.EXACT_MATCH
+        )
+
+    except (NumberParseException, ValueError, TypeError):
+        return False
+
 def get_country_code_map() -> list[CountryCode]:
     """Generate country code list (Without Flags)"""
 
@@ -184,60 +271,65 @@ def get_country_code_map() -> list[CountryCode]:
 #     request_id = f"{full_prefix}{next_number:05d}"
 #     return request_id
 
-def generate_request_id(vol_cat_code: str, existing_requests: list[str]) -> str:
+def generate_request_id(vol_cat_code: str, visit_id:str) -> str:
     full_prefix = f"REQ-{vol_cat_code}"
 
     # Normalize existing request IDs.
     # This protects against None values, non-string values,
     # and accidental spaces in Google Sheet data.
-    existing_requests_set = {
-        str(request_id).strip()
-        for request_id in existing_requests
-        if request_id is not None
-    }
-
+    # existing_requests_set = {
+    #     str(request_id).strip()
+    #     for request_id in existing_requests
+    #     if request_id is not None
+    # }
+    current_time = datetime.now(IST).strftime("%H%M%f")[:-4]
+    print("current_time",current_time)
+    print("visit_id",visit_id[-6:])
+    request_id = f"{full_prefix}{visit_id[-6:]}-{current_time}"
+    print("request_id",request_id)
+    return request_id
     # Extract the numeric portion of existing IDs for this category.
-    existing_numbers = set()
+    # existing_numbers = set()
 
-    for request_id in existing_requests_set:
-        if not request_id.startswith(full_prefix):
-            continue
+    # for request_id in existing_requests_set:
+    #     if not request_id.startswith(full_prefix):
+    #         continue
 
-        number_part = request_id[len(full_prefix):]
+    #     number_part = request_id[len(full_prefix):]
 
-        if number_part.isdigit():
-            number = int(number_part)
+    #     if number_part.isdigit():
+    #         number = int(number_part)
 
-            # Only consider IDs in the valid numeric range.
-            if 1 <= number <= 99999:
-                existing_numbers.add(number)
+    #         # Only consider IDs in the valid numeric range.
+    #         if 1 <= number <= 99999:
+    #             existing_numbers.add(number)
 
     # Find the first available numeric ID.
-    for next_number in range(1, 100000):
-        request_id = f"{full_prefix}{next_number:05d}"
+    # for next_number in range(1, 100000):
+    #     request_id = f"{full_prefix}{next_number:05d}"
 
-        # Check both the numeric set and the actual IDs.
-        # The second check provides an additional safety check.
-        if next_number not in existing_numbers and request_id not in existing_requests_set:
-            return request_id
+    #     # Check both the numeric set and the actual IDs.
+    #     # The second check provides an additional safety check.
+    #     if next_number not in existing_numbers and request_id not in existing_requests_set:
+    #         return request_id
 
-    # All numeric IDs from 00001 to 99999 are already used.
-    # Generate a random 5-character alphanumeric ID instead.
-    for _ in range(10000):
-        random_alnum = ''.join(
-            random.choices(
-                string.ascii_uppercase + string.digits,
-                k=5
-            )
-        )
+    # # All numeric IDs from 00001 to 99999 are already used.
+    # # Generate a random 5-character alphanumeric ID instead.
+    # for _ in range(10000):
+    #     random_alnum = ''.join(
+    #         random.choices(
+    #             string.ascii_uppercase + string.digits,
+    #             k=5
+    #         )
+    #     )
 
-        request_id = f"{full_prefix}{random_alnum}"
+        # request_id = f"{full_prefix}{random_alnum}"
 
-        if request_id not in existing_requests_set:
-            return request_id
+        # if request_id not in existing_requests_set:
+        #     return request_id
 
     # Extremely unlikely fallback if all random attempts collide.
-    return f"{full_prefix}XXXXX"
+    # return f"{full_prefix}XXXXX"
 
 
 # region read appsettings.json
