@@ -11,8 +11,8 @@ import utils
 import re
 import time
 
-from entities import Bathroom, FloorNum, Log, Request, Room, Shower, StayArea, SubCategory
-from repository import BathroomRepository, BunkNumRepository, CategoryRepository, FloorNumRepository, LogRepository, ParameterRepository, RoomRepository, RequestRepository, SettingRepository, ShowerRepository, StayAreaRepository, SubCategoryRepository, VolunteerCategoryRepository, VolunteerRepository
+from entities import Bathroom, FloorNum, Log, Request, Room, Shower, StayArea, SubCategory,AccommodationMaintenanceType, BunkNumber
+from repository import BathroomRepository, BunkNumRepository, CategoryRepository, FloorNumRepository, LogRepository, ParameterRepository, RoomRepository, RequestRepository, SettingRepository, ShowerRepository, StayAreaRepository, SubCategoryRepository, VolunteerCategoryRepository, VolunteerRepository, AccoMaintenanceTypeRepository
 from zoneinfo import ZoneInfo
 
 IST = ZoneInfo("Asia/Kolkata")
@@ -72,6 +72,7 @@ room_repo = RoomRepository()
 setting_repo = SettingRepository()
 shower_repo = ShowerRepository()
 stay_area_repo = StayAreaRepository ()
+acco_maintenance_type_repo = AccoMaintenanceTypeRepository()
 subcategory_repo = SubCategoryRepository()
 vol_cat_repo = VolunteerCategoryRepository()
 volunteer_repo = VolunteerRepository()
@@ -543,19 +544,180 @@ def render_dynamic_textbox(sub_cat: SubCategory) -> None:
 
             cur_col = col1 if cur_col != col1 else col2
 
+def show_acco_other_details_textbox():
+
+    acco_other_details_type = st.session_state.get("acco_other_details_type")
+
+    if not acco_other_details_type or acco_other_details_type == "Select":
+        return
+
+    # Dynamic textbox session-state name
+    textbox_key = f"input_{acco_other_details_type.lower().replace(' ', '_')}_desc"
+    textbox_req = f"is_{acco_other_details_type.lower().replace(' ', '_')}_req"
+
+    description = st.text_input(
+        f"{acco_other_details_type} Details",
+        placeholder=f"Provide details about the {acco_other_details_type.lower().replace(' ', '_')} (e.g. number, etc.)",
+        key=textbox_key
+    )
+    st.session_state.pop("input_shower_desc", None)
+    st.session_state.pop("input_toilet_desc", None)
+    st.session_state.pop("input_drying_lines_desc", None)
+    st.session_state.pop("input_corridor_desc", None)
+    st.session_state.pop("input_other_desc", None)
+    st.session_state["is_shower_req"] = False
+    st.session_state["is_toilet_req"] = False
+    st.session_state["is_drying_lines_req"] = False
+    st.session_state["is_corridor_req"] = False
+    st.session_state["is_other_req"] = False
+    st.session_state[textbox_key] = description
+    st.session_state[textbox_req] = True
+    return
+
 def show_accomodation_fields() -> None:
     """Render the accomodation fields."""
     # This field is used for form validation. 
     # I am assuming that if this function will be called only when accomodation fields is required.
     st.session_state["is_stay_area_req"] = True
     st.session_state["is_room_req"] = True
-    st.session_state["is_bathroom_req"] = True
     st.session_state["is_floor_num_req"] = True
-    st.session_state["is_shower_req"] = True
-
+    st.session_state["is_acco_maintenance_type_req"] = True
+    st.session_state["is_bunk_req"] = True
+    st.session_state["is_issue_date_req"] = True
+    input_subcategory_id = st.session_state.get("input_subcategory").subcategory_id if st.session_state.get("input_subcategory", None) is not None else None
     col1, col2 = st.columns(2)
-
     with col1:
+
+        if(input_subcategory_id == setting_repo.get_by_key("ACCO_MAINTENANCE_SUBCAT_ID_LTV").value or input_subcategory_id == setting_repo.get_by_key("ACCO_MAINTENANCE_SUBCAT_ID_STV").value or input_subcategory_id == setting_repo.get_by_key("ACCO_MAINTENANCE_SUBCAT_ID_AV").value):
+            # Accommodation Maintenance Type
+            acco_maintenance_type_na = AccommodationMaintenanceType(
+            acco_maintenance_type_id = "N/A",
+            acco_maintenance_type_name = "N/A",
+            is_active = True
+            )
+
+            acco_maintenance_types = [acco_maintenance_type_na]
+            acco_maintenance_types.extend(acco_maintenance_type_repo.get_active_acco_maintenance_types())
+
+            acco_maintenance_types_options = {maintenance_type.acco_maintenance_type_name: maintenance_type for maintenance_type in acco_maintenance_types}
+
+            required_label("Accommodation Maintenance Type")
+            input_acco_maintenance_type_name = st.selectbox(
+            ".", # ** No longer relevant
+            list(acco_maintenance_types_options.keys()),
+            index=None,
+            key="input_acco_maintenance_type_name",
+            label_visibility="collapsed",
+            placeholder="Select Accommodation Maintenance Type",
+            )
+            st.caption("Please select 'N/A' if accommodation maintenance type is not applicable.")
+
+            input_acco_maintenance_type = None
+            if (input_acco_maintenance_type_name is not None) and (input_acco_maintenance_type_name in acco_maintenance_types_options):
+                input_acco_maintenance_type = acco_maintenance_types_options[input_acco_maintenance_type_name]
+                st.session_state["input_acco_maintenance_type"] = input_acco_maintenance_type
+            else:
+                st.session_state.pop("input_acco_maintenance_type", None)
+                st.session_state.pop("input_acco_maintenance_type_name", None)
+
+        # Floor Number
+        floor_num_na = FloorNum(
+                floor_id = "N/A",
+                floor_num = "N/A",
+                is_active = True
+        )
+
+        floor_nums = [ floor_num_na ]
+        floor_nums.extend(floor_num_repo.get_active_floor_nums())
+
+        floor_nums_options = {floor_num.floor_num: floor_num for floor_num in floor_nums}
+
+        required_label("Floor Number")
+        input_floor_num_name = st.selectbox(
+                ".", # ** No longer relevant
+                list(floor_nums_options.keys()),
+                index=None,
+                key="input_floor_num_name",
+                label_visibility="collapsed",
+                placeholder="Select Floor Number",
+        )
+        st.caption("Please select 'N/A' if floor number is not applicable.")
+
+        if (input_floor_num_name is not None) and (input_floor_num_name in floor_nums_options):
+                input_floor_num = floor_nums_options[input_floor_num_name]
+                st.session_state["input_floor_num"] = input_floor_num
+        else:
+                st.session_state.pop("input_floor_num", None)
+                st.session_state.pop("input_floor_num_name", None)
+
+        #Other Details
+        required_label("Select Other Details")
+        acco_other_details_ddl = st.selectbox(".",
+        ["Select", "Shower", "Toilet", "Drying lines", "Corridor", "Other"],
+        key="acco_other_details_ddl"
+        )
+
+        st.session_state["acco_other_details_type"] = acco_other_details_ddl
+        show_acco_other_details_textbox()
+
+        # if acco_other_details_ddl != "Select":
+        #     st.session_state.pop("input_shower_desc", None)
+        #     st.session_state.pop("input_toilet_desc", None)
+        #     st.session_state.pop("input_drying_lines_desc", None)
+        #     st.session_state.pop("input_corridor_desc", None)
+        #     st.session_state.pop("input_other_desc", None)
+
+        #     session_key = f"input_{acco_other_details_ddl.lower().replace(' ', '_')}_desc"
+        #     st.session_state[session_key] = acco_other_details_ddl
+
+        # print("Session State:", session_key)
+
+        # #Show Textbox for Other Details based on selection
+        # if acco_other_details_ddl == "Shower":
+        #     required_label("Shower")
+        #     shower_desc = st.text_input(
+        #         ".",
+        #         placeholder="Provide details about the shower (e.g. shower number, etc.)",
+        #         key="shower_desc",
+        #         label_visibility="collapsed",
+        #     )
+
+        #     if shower_desc:
+        #         st.session_state["input_shower_desc"] = shower_desc
+        #     else :
+        #         st.session_state.pop("input_shower_desc", None)
+
+        # #Shower textbox    
+        # required_label("Shower")
+        # shower_desc = st.text_input(
+        #     ".",
+        #     placeholder="Provide details about the shower (e.g. shower number, etc.)",
+        #     key="shower_desc",
+        #     label_visibility="collapsed",
+        # )
+
+        # if shower_desc:
+        #     st.session_state["input_shower_desc"] = shower_desc
+        # else :
+        #     st.session_state.pop("input_shower_desc", None)
+
+        # #Toilet textbox
+        # required_label("Toilet")
+        # toilet_desc = st.text_input(
+        #                 ".",
+        #                 placeholder="Provide details about the toilet (e.g. number, etc.)",
+        #                 key="toilet_desc",
+        #                 label_visibility="collapsed",
+        #                 )
+                
+        # if toilet_desc:
+        #     st.session_state["input_toilet_desc"] = toilet_desc
+        # else:    
+        #     st.session_state.pop("input_toilet_desc", None)
+                
+        
+    with col2:
+        
         # Stay Area
         stay_area_na = StayArea(
             stay_area_id = "N/A",
@@ -588,22 +750,22 @@ def show_accomodation_fields() -> None:
             st.session_state.pop("input_stay_area_name", None)
 
         # Rooms
-
+        
         room_na = Room(
             room_id = "N/A",
             stay_area_id = "N/A",
             room_num = "N/A",
             is_active = True
         )
-
+        
         rooms = [ room_na ]
         rooms.extend(room_repo.get_active_rooms(input_stay_area))
-
+        
         rooms_options = {room.room_num: room for room in rooms}
-
+        
         required_label("Room")
         input_room_name = st.selectbox(
-            "", # ** No longer relevant
+            ".", # ** No longer relevant
             list(rooms_options.keys()),
             index=None,
             key="input_room_name",
@@ -612,107 +774,130 @@ def show_accomodation_fields() -> None:
         )
         st.caption("Please select 'N/A' if room is not applicable.")
 
+        input_room = None
         if (input_room_name is not None) and (input_room_name in rooms_options):
             input_room = rooms_options[input_room_name]
             st.session_state["input_room"] = input_room
         else:
             st.session_state.pop("input_room", None)
             st.session_state.pop("input_room_name", None)
+            
+        # # Showers
 
-        # Bathrooms
+        # shower_na = Shower(
+        #     shower_id = "N/A",
+        #     stay_area_id = "N/A",
+        #     shower_num = "N/A",
+        #     is_active = True
+        # )
 
-        bathroom_na = Bathroom(
-            bathroom_id = "N/A",
+        # showers = [ shower_na ]
+        # showers.extend(shower_repo.get_active_showers(input_stay_area))
+
+        # showers_options = {shower.shower_num: shower for shower in showers}
+
+        # required_label("Showers")
+        # input_shower_name = st.selectbox(
+        #     ".", # ** No longer relevant
+        #     list(showers_options.keys()),
+        #     index=None,
+        #     key="input_shower_name",
+        #     label_visibility="collapsed",
+        #     placeholder="Select Shower",
+        # )
+        # st.caption("Please select 'N/A' if shower is not applicable.")
+
+        # if (input_shower_name is not None) and (input_shower_name in showers_options):
+        #     input_shower = showers_options[input_shower_name]
+        #     st.session_state["input_shower"] = input_shower
+        # else:
+        #     st.session_state.pop("input_shower", None)
+        #     st.session_state.pop("input_shower_name", None)
+
+        # Bunks
+
+        bunk_na = BunkNumber(
+            bunk_id = "N/A",
             stay_area_id = "N/A",
-            bathroom_num = "N/A",
+            room_id = "N/A",
+            bunk_num = "N/A",
             is_active = True
         )
 
-        bathrooms = [ bathroom_na ]
-        bathrooms.extend(bathroom_repo.get_active_bathrooms(input_stay_area))
+        bunks = [ bunk_na ]
+        bunks.extend(bunk_num_repo.get_active_bunks(input_room))
 
-        bathrooms_options = {bathroom.bathroom_num: bathroom for bathroom in bathrooms}
-
-        required_label("Bathrooms")
-        input_bathroom_name = st.selectbox(
+        bunks_options = {bunk.bunk_num: bunk for bunk in bunks}
+        
+        required_label("Bunks")
+        input_bunk_name = st.selectbox(
             ".", # ** No longer relevant
-            list(bathrooms_options.keys()),
+            list(bunks_options.keys()),
             index=None,
-            key="input_bathroom_name",
+            key="input_bunk_name",
             label_visibility="collapsed",
-            placeholder="Select Bathroom",
+            placeholder="Select Bunk",
         )
-        st.caption("Please select 'N/A' if bathroom is not applicable.")
+        st.caption("Please select 'N/A' if bunk is not applicable.")
 
-        if (input_bathroom_name is not None) and (input_bathroom_name in bathrooms_options):
-            input_bathroom = bathrooms_options[input_bathroom_name]
-            st.session_state["input_bathroom"] = input_bathroom
+        if (input_bunk_name is not None) and (input_bunk_name in bunks_options):
+            input_bunk = bunks_options[input_bunk_name]
+            st.session_state["input_bunk"] = input_bunk
         else:
-            st.session_state.pop("input_bathroom", None)
-            st.session_state.pop("input_bathroom_name", None)
+            st.session_state.pop("input_bunk", None)
+            st.session_state.pop("input_bunk_name", None)
 
-    with col2:
-        # Floor Number
-        floor_num_na = FloorNum(
-            floor_id = "N/A",
-            floor_num = "N/A",
-            is_active = True
-        )
 
-        floor_nums = [ floor_num_na ]
-        floor_nums.extend(floor_num_repo.get_active_floor_nums())
-
-        floor_nums_options = {floor_num.floor_num: floor_num for floor_num in floor_nums}
-
-        required_label("Floor Number")
-        input_floor_num_name = st.selectbox(
-            ".", # ** No longer relevant
-            list(floor_nums_options.keys()),
-            index=None,
-            key="input_floor_num_name",
+        # Date and Time of issue :
+        current_datetime = datetime.now(IST)
+        required_label("📅 Date & Time of Issue :")
+        issue_date_str = None
+        issue_date = st.datetime_input(
+            ".",
+            format="DD/MM/YYYY",
+            max_value=current_datetime,
+            key="issue_date",
             label_visibility="collapsed",
-            placeholder="Select Floor Number",
         )
-        st.caption("Please select 'N/A' if floor number is not applicable.")
+        issue_date_str = issue_date.strftime("%d/%m/%Y %H:%M")
 
-        if (input_floor_num_name is not None) and (input_floor_num_name in floor_nums_options):
-            input_floor_num = floor_nums_options[input_floor_num_name]
-            st.session_state["input_floor_num"] = input_floor_num
-        else:
-            st.session_state.pop("input_floor_num", None)
-            st.session_state.pop("input_floor_num_name", None)
+        if issue_date:
+            st.session_state["input_issue_date"] = issue_date_str
+        else:    
+            st.session_state.pop("input_issue_date", None)
 
-        # Showers
+        # # Bathrooms
 
-        shower_na = Shower(
-            shower_id = "N/A",
-            stay_area_id = "N/A",
-            shower_num = "N/A",
-            is_active = True
-        )
+        # bathroom_na = Bathroom(
+        #     bathroom_id = "N/A",
+        #     stay_area_id = "N/A",
+        #     bathroom_num = "N/A",
+        #     is_active = True
+        # )
 
-        showers = [ shower_na ]
-        showers.extend(shower_repo.get_active_showers(input_stay_area))
+        # bathrooms = [ bathroom_na ]
+        # bathrooms.extend(bathroom_repo.get_active_bathrooms(input_stay_area))
 
-        showers_options = {shower.shower_num: shower for shower in showers}
+        # bathrooms_options = {bathroom.bathroom_num: bathroom for bathroom in bathrooms}
 
-        required_label("Showers")
-        input_shower_name = st.selectbox(
-            ".", # ** No longer relevant
-            list(showers_options.keys()),
-            index=None,
-            key="input_shower_name",
-            label_visibility="collapsed",
-            placeholder="Select Shower",
-        )
-        st.caption("Please select 'N/A' if shower is not applicable.")
+        # required_label("Bathrooms")
+        # input_bathroom_name = st.selectbox(
+        #     ".", # ** No longer relevant
+        #     list(bathrooms_options.keys()),
+        #     index=None,
+        #     key="input_bathroom_name",
+        #     label_visibility="collapsed",
+        #     placeholder="Select Bathroom",
+        # )
+        # st.caption("Please select 'N/A' if bathroom is not applicable.")
 
-        if (input_shower_name is not None) and (input_shower_name in showers_options):
-            input_shower = showers_options[input_shower_name]
-            st.session_state["input_shower"] = input_shower
-        else:
-            st.session_state.pop("input_shower", None)
-            st.session_state.pop("input_shower_name", None)
+        # if (input_bathroom_name is not None) and (input_bathroom_name in bathrooms_options):
+        #     input_bathroom = bathrooms_options[input_bathroom_name]
+        #     st.session_state["input_bathroom"] = input_bathroom
+        # else:
+        #     st.session_state.pop("input_bathroom", None)
+        #     st.session_state.pop("input_bathroom_name", None)
+        
 
 # def show_program_selection() -> None:
 #     """Render the program selection flow."""
@@ -958,13 +1143,45 @@ def show_submit_button():
                 "⚠️ Please select a Room.")
         )
 
-    is_bathroom_req = st.session_state.get("is_bathroom_req", False)
-    if is_bathroom_req:
+    is_toilet_req = st.session_state.get("is_toilet_req", False)
+    if is_toilet_req:
         validation_results.append(
             validate_required(
-                st.session_state.get("input_bathroom", ""), 
-                "⚠️ Please select a Bathroom.")
+                st.session_state.get("input_toilet_desc", ""), 
+                "⚠️ Please fill in 'Toilet' textbox.")
         )
+
+    is_shower_req = st.session_state.get("is_shower_req", False)
+    if is_shower_req:
+            validation_results.append(
+                validate_required(
+                    st.session_state.get("input_shower_desc", ""), 
+                    "⚠️ Please fill in 'Shower' textbox.")
+            )
+
+    is_drying_lines_req = st.session_state.get("is_drying_lines_req", False)
+    if is_drying_lines_req:
+                validation_results.append(
+                    validate_required(
+                        st.session_state.get("input_drying_lines_desc", ""), 
+                        "⚠️ Please fill in 'Drying Lines' textbox.")
+                )
+
+    is_corridor_req = st.session_state.get("is_corridor_req", False)
+    if is_corridor_req:
+                validation_results.append(
+                    validate_required(
+                        st.session_state.get("input_corridor_desc", ""), 
+                        "⚠️ Please fill in 'Corridor' textbox.")
+                )
+
+    is_other_req = st.session_state.get("is_other_req", False)
+    if is_other_req:
+                validation_results.append(
+                    validate_required(
+                        st.session_state.get("input_other_desc", ""), 
+                        "⚠️ Please fill in 'Other' textbox.")
+                )
 
     is_floor_num_req = st.session_state.get("is_floor_num_req", False)
     if is_floor_num_req:
@@ -974,13 +1191,30 @@ def show_submit_button():
                     "⚠️ Please select a Floor.")
         )
 
-    is_shower_req = st.session_state.get("is_shower_req", False)
-    if is_shower_req:
-        validation_results.append(
-            validate_required(
-                st.session_state.get("input_shower", ""), 
-                "⚠️ Please select a Shower.")
-        )
+    is_issue_date_req = st.session_state.get("is_issue_date_req", False)
+    if is_issue_date_req:
+            validation_results.append(
+                validate_required(
+                    st.session_state.get("input_issue_date", ""), 
+                    "⚠️ Please select an Issue Date.")
+            )
+
+    is_acco_maintenance_type_req = st.session_state.get("is_acco_maintenance_type_req", False)
+    if is_acco_maintenance_type_req:
+            validation_results.append(
+                validate_required(
+                    st.session_state.get("input_acco_maintenance_type", ""), 
+                    "⚠️ Please select an Accommodation Maintenance Type.")
+            )
+
+    is_bunk_req = st.session_state.get("is_bunk_req", False)
+    if is_bunk_req:
+            validation_results.append(
+                validate_required(
+                    st.session_state.get("input_bunk", ""), 
+                    "⚠️ Please select a Bunk.")
+            )
+            
 
     dynamic_dropdowns = st.session_state.get("dynamic_dropdowns", None)
     if dynamic_dropdowns:
@@ -1206,9 +1440,13 @@ def reset_accomodation_req_flags():
 
     st.session_state.pop("is_stay_area_req", None)
     st.session_state.pop("is_room_req", None)
-    st.session_state.pop("is_bathroom_req", None)
     st.session_state.pop("is_floor_num_req", None)
+    st.session_state.pop("is_issue_date_req", None)
     st.session_state.pop("is_shower_req", None)
+    st.session_state.pop("is_toilet_req", None)
+    st.session_state.pop("is_drying_lines_req", None)
+    st.session_state.pop("is_corridor_req", None)
+    st.session_state.pop("is_other_req", None)
 
 def save_record():
     request_repo = RequestRepository()
@@ -1259,33 +1497,61 @@ def save_record():
 
     description = st.session_state["input_description"]
 
+    is_issue_date_req = st.session_state.get("is_issue_date_req", False)
+    if is_issue_date_req:
+        input_issue_date = st.session_state.get("input_issue_date", "")
+        description += f"\nIssue Date: {input_issue_date}"
+
+
+    is_acco_maintenance_type_req = st.session_state.get("is_acco_maintenance_type_req", False)
+    if is_acco_maintenance_type_req:
+        input_acco_maintenance_type = st.session_state.get("input_acco_maintenance_type", "")
+        description += f"\nAccommodation Maintenance Type: {input_acco_maintenance_type.acco_maintenance_type_name}"
+
     is_stay_area_req = st.session_state.get("is_stay_area_req", False)
     if is_stay_area_req:
         input_stay_area = st.session_state.get("input_stay_area", "")
         description += f"\nStay Area: {input_stay_area.stay_area_name}"
+    
+    is_floor_num_req = st.session_state.get("is_floor_num_req", False)
+    if is_floor_num_req:
+        input_floor_num = st.session_state.get("input_floor_num", "")
+        description += f"\nFloor Number: {input_floor_num.floor_num}"
 
     is_room_req = st.session_state.get("is_room_req", False)
     if is_room_req:
         input_room = st.session_state.get("input_room", "")
         description += f"\nRoom: {input_room.room_num}"
 
-    is_bathroom_req = st.session_state.get("is_bathroom_req", False)
-    if is_bathroom_req:
-        input_bathroom = st.session_state.get("input_bathroom", "")
-        description += f"\nBathroom: {input_bathroom.bathroom_num}"
+    is_bunk_req = st.session_state.get("is_bunk_req", False)
+    if is_bunk_req:
+        input_bunk = st.session_state.get("input_bunk", "")
+        description += f"\nBunk: {input_bunk.bunk_num}"
 
-    is_floor_num_req = st.session_state.get("is_floor_num_req", False)
-    if is_floor_num_req:
-        input_floor_num = st.session_state.get("input_floor_num", "")
-        description += f"\nFloor Number: {input_floor_num.floor_num}"
+    is_toilet_req = st.session_state.get("is_toilet_req", False)
+    if is_toilet_req:
+        input_toilet = st.session_state.get("input_toilet_desc", "")
+        description += f"\nToilet: {input_toilet}"
 
     is_shower_req = st.session_state.get("is_shower_req", False)
     if is_shower_req:
-        input_shower = st.session_state.get("input_shower", "")
-        description += f"\nShower: {input_shower.shower_num}"
+        input_shower = st.session_state.get("input_shower_desc", "")
+        description += f"\nShower: {input_shower}"
 
+    is_drying_lines_req = st.session_state.get("is_drying_lines_req", False)
+    if is_drying_lines_req:
+        input_drying_lines = st.session_state.get("input_drying_lines_desc", "")
+        description += f"\nDrying Lines: {input_drying_lines}"
 
-    
+    is_corridor_req = st.session_state.get("is_corridor_req", False)
+    if is_corridor_req:
+        input_corridor = st.session_state.get("input_corridor_desc", "")
+        description += f"\nCorridor: {input_corridor}"
+
+    is_other_req = st.session_state.get("is_other_req", False)
+    if is_other_req:
+        input_other = st.session_state.get("input_other_desc", "")
+        description += f"\nOther: {input_other}"
 
     dynamic_dropdowns = st.session_state.get("dynamic_dropdowns", None)
     if dynamic_dropdowns:
@@ -1330,7 +1596,20 @@ def save_record():
 
         program_date_id = program_date.program_date_id if program_date is not None else None,
         coordinator_email_id = coordinator_email,
-        is_health_related = is_health_related
+        is_health_related = is_health_related,
+        acco_issue_date = st.session_state.get("input_issue_date", None),
+        acco_maintenance_type_id= st.session_state.get("input_acco_maintenance_type", None).acco_maintenance_type_id if st.session_state.get("input_acco_maintenance_type", None) is not None else None,
+        acco_stay_area_id= st.session_state.get("input_stay_area", None).stay_area_id if st.session_state.get("input_stay_area", None) is not None else None,
+        acco_floor_id= st.session_state.get("input_floor_num", None).floor_id if st.session_state.get("input_floor_num", None) is not None else None,
+        acco_room_id= st.session_state.get("input_room", None).room_id if st.session_state.get("input_room", None) is not None else None,
+        acco_bunk_id= st.session_state.get("input_bunk", None).bunk_id if st.session_state.get("input_bunk", None) is not None else None,
+
+        acco_toilet_num= st.session_state.get("input_toilet_desc", None),
+        acco_shower_num= st.session_state.get("input_shower_desc", None),
+        acco_drylines_details= st.session_state.get("input_drying_lines_desc", None),
+        acco_corridor_details= st.session_state.get("input_corridor_desc", None),
+        acco_other_details= st.session_state.get("input_other", None),
+
     )
 
     request_repo.write_to_sheet(req)
@@ -1416,9 +1695,17 @@ def reset_req_flags():
 
     st.session_state.pop("is_stay_area_req", None)
     st.session_state.pop("is_room_req", None)
-    st.session_state.pop("is_bathroom_req", None)
     st.session_state.pop("is_floor_num_req", None)
+    st.session_state.pop("is_bunk_req", None)
+    st.session_state.pop("is_acco_maintenance_type_req", None)
+    st.session_state.pop("is_issue_date_req", None)
+    
     st.session_state.pop("is_shower_req", None)
+    st.session_state.pop("is_toilet_req", None)
+    st.session_state.pop("is_drying_lines_req", None)
+    st.session_state.pop("is_corridor_req", None)
+    st.session_state.pop("is_other_req", None)
+    
 
 def required_label(label: str) -> None:
     st.markdown(
