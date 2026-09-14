@@ -785,6 +785,7 @@ def show_accomodation_fields() -> None:
 
         # The value selected in the widget is intended to be IST
         issue_date = issue_date.replace(tzinfo=IST)
+        issue_date_str = issue_date.strftime("%d/%m/%Y %H:%M")
 
         if issue_date:
             st.session_state["input_issue_date"] = issue_date_str
