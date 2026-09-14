@@ -859,6 +859,11 @@ def show_accomodation_fields() -> None:
             key="issue_date",
             label_visibility="collapsed",
         )
+        # Make sure the selected datetime is treated as IST
+        if issue_date.tzinfo is None:
+            issue_date = issue_date.replace(tzinfo=IST)
+        else:
+            issue_date = issue_date.astimezone(IST)
         issue_date_str = issue_date.strftime("%d/%m/%Y %H:%M")
 
         if issue_date:
