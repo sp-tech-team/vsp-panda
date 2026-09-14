@@ -619,6 +619,10 @@ def show_accomodation_fields() -> None:
             else:
                 st.session_state.pop("input_acco_maintenance_type", None)
                 st.session_state.pop("input_acco_maintenance_type_name", None)
+        else:
+            st.session_state.pop("input_acco_maintenance_type", None)
+            st.session_state.pop("input_acco_maintenance_type_name", None)
+            st.session_state.pop("is_acco_maintenance_type_req", None)
 
         # Floor Number
         floor_num_na = FloorNum(
@@ -659,62 +663,7 @@ def show_accomodation_fields() -> None:
 
         st.session_state["acco_other_details_type"] = acco_other_details_ddl
         show_acco_other_details_textbox()
-
-        # if acco_other_details_ddl != "Select":
-        #     st.session_state.pop("input_shower_desc", None)
-        #     st.session_state.pop("input_toilet_desc", None)
-        #     st.session_state.pop("input_drying_lines_desc", None)
-        #     st.session_state.pop("input_corridor_desc", None)
-        #     st.session_state.pop("input_other_desc", None)
-
-        #     session_key = f"input_{acco_other_details_ddl.lower().replace(' ', '_')}_desc"
-        #     st.session_state[session_key] = acco_other_details_ddl
-
-        # print("Session State:", session_key)
-
-        # #Show Textbox for Other Details based on selection
-        # if acco_other_details_ddl == "Shower":
-        #     required_label("Shower")
-        #     shower_desc = st.text_input(
-        #         ".",
-        #         placeholder="Provide details about the shower (e.g. shower number, etc.)",
-        #         key="shower_desc",
-        #         label_visibility="collapsed",
-        #     )
-
-        #     if shower_desc:
-        #         st.session_state["input_shower_desc"] = shower_desc
-        #     else :
-        #         st.session_state.pop("input_shower_desc", None)
-
-        # #Shower textbox    
-        # required_label("Shower")
-        # shower_desc = st.text_input(
-        #     ".",
-        #     placeholder="Provide details about the shower (e.g. shower number, etc.)",
-        #     key="shower_desc",
-        #     label_visibility="collapsed",
-        # )
-
-        # if shower_desc:
-        #     st.session_state["input_shower_desc"] = shower_desc
-        # else :
-        #     st.session_state.pop("input_shower_desc", None)
-
-        # #Toilet textbox
-        # required_label("Toilet")
-        # toilet_desc = st.text_input(
-        #                 ".",
-        #                 placeholder="Provide details about the toilet (e.g. number, etc.)",
-        #                 key="toilet_desc",
-        #                 label_visibility="collapsed",
-        #                 )
-                
-        # if toilet_desc:
-        #     st.session_state["input_toilet_desc"] = toilet_desc
-        # else:    
-        #     st.session_state.pop("input_toilet_desc", None)
-                
+         
         
     with col2:
         
@@ -782,38 +731,7 @@ def show_accomodation_fields() -> None:
             st.session_state.pop("input_room", None)
             st.session_state.pop("input_room_name", None)
             
-        # # Showers
-
-        # shower_na = Shower(
-        #     shower_id = "N/A",
-        #     stay_area_id = "N/A",
-        #     shower_num = "N/A",
-        #     is_active = True
-        # )
-
-        # showers = [ shower_na ]
-        # showers.extend(shower_repo.get_active_showers(input_stay_area))
-
-        # showers_options = {shower.shower_num: shower for shower in showers}
-
-        # required_label("Showers")
-        # input_shower_name = st.selectbox(
-        #     ".", # ** No longer relevant
-        #     list(showers_options.keys()),
-        #     index=None,
-        #     key="input_shower_name",
-        #     label_visibility="collapsed",
-        #     placeholder="Select Shower",
-        # )
-        # st.caption("Please select 'N/A' if shower is not applicable.")
-
-        # if (input_shower_name is not None) and (input_shower_name in showers_options):
-        #     input_shower = showers_options[input_shower_name]
-        #     st.session_state["input_shower"] = input_shower
-        # else:
-        #     st.session_state.pop("input_shower", None)
-        #     st.session_state.pop("input_shower_name", None)
-
+        
         # Bunks
 
         bunk_na = BunkNumber(
@@ -864,6 +782,7 @@ def show_accomodation_fields() -> None:
             issue_date = issue_date.replace(tzinfo=IST)
         else:
             issue_date = issue_date.astimezone(IST)
+
         issue_date_str = issue_date.strftime("%d/%m/%Y %H:%M")
 
         if issue_date:
