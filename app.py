@@ -1034,20 +1034,15 @@ def show_description_box() -> None:
 
 def show_submit_button():
     """Render the submit button"""
-    if "is_submitting" not in st.session_state:
-        st.session_state["is_submitting"] = False
 
     submit = st.button(
             "Submit Request",
-            key="submit",
-            disabled=st.session_state["is_submitting"]
+            key="submit"
         )
 
     if not submit:
         return
-
-    st.session_state["is_submitting"] = True
-
+        
     validation_results = []
     
     validation_results.append(
@@ -1326,10 +1321,7 @@ def show_submit_button():
 
         # Remove full-screen loader
         loader.empty()
-        # Allow Submit button to be clicked again
-        st.session_state["is_submitting"] = False
-        # time.sleep(10) 
-        st.rerun()
+        
 
         # log_repo = LogRepository()
 
@@ -1348,17 +1340,7 @@ def show_submit_button():
     except Exception:
         # Remove loader even if something fails
         loader.empty()
-        # Re-enable Submit button if submission failed
-        st.session_state["is_submitting"] = False
-        # Log the exception
-        logger.exception(
-            "Exception while submitting request",
-            extra={
-                "ip_address": utils.get_client_ip(),
-                "vol_email_id": volunteer.email_id if volunteer else "",
-                "vol_phone_num": volunteer.phone_number if volunteer else "",
-            }
-        )
+        
         raise
 
 def show_help_text(help_text: str) -> None:
