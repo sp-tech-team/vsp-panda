@@ -129,7 +129,19 @@ REQUESTS_HEADER = (
     REQUESTS_CLOSED_BY,
     REQUESTS_CLOSED_ON,
     REQUESTS_REASSIGNED_BY,
-    REQUESTS_HEALTH_RELATED_BOOL
+    REQUESTS_HEALTH_RELATED_BOOL,
+    REQUESTS_ACCO_ISSUE_DATE,
+    REQUESTS_ACCO_MAINTENANCE_TYPE_ID,
+    REQUESTS_ACCO_STAY_AREA_ID,
+    REQUESTS_ACCO_FLOOR_ID,
+    REQUESTS_ACCO_ROOM_ID,
+    REQUESTS_ACCO_BUNK_ID,
+    REQUESTS_ACCO_TOILET_NUM,
+    REQUESTS_ACCO_SHOWER_NUM,
+    REQUESTS_ACCO_DRYLINES_DETAILS,
+    REQUESTS_ACCO_CORRIDOR_DETAILS,
+    REQUESTS_ACCO_OTHER_DETAILS
+
 )
 
 SETTINGS_HEADER = (
@@ -150,6 +162,12 @@ STAY_AREA_HEADER = (
     STAY_AREA_STAY_AREA_ID,
     STAY_AREA_STAY_AREA_NAME,
     STAY_AREA_IS_ACTIVE,
+)
+
+ACCO_MAINTENANCE_TYPE_HEADER = (
+    ACCO_MAINTENANCE_TYPE_ID,
+    ACCO_MAINTENANCE_TYPE_NAME,
+    ACCO_MAINTENANCE_TYPE_IS_ACTIVE,
 )
 
 SUB_CATEGORIES_MASTER_HEADER = (
@@ -296,6 +314,10 @@ def _validate_headers(headers: list[str], worksheet: str) -> None:
         missing_headers = [
             header for header in STAY_AREA_HEADER if header not in headers
         ]
+    elif worksheet == ACCO_MAINTENANCE_TYPE_WORKSHEET:
+            missing_headers = [
+                header for header in ACCO_MAINTENANCE_TYPE_HEADER if header not in headers
+            ]
     elif worksheet == SUB_CATEGORIES_WORKSHEET:
         missing_headers = [
             header for header in SUB_CATEGORIES_MASTER_HEADER if header not in headers
@@ -345,7 +367,7 @@ def _row_to_bunk_num_entity(row: dict[str, Any]) -> BunkNumber:
         bunk_id = str(row.get(BUNK_NUM_BUNK_ID, 0)),
         stay_area_id = str(row.get(BUNK_NUM_STAY_AREA_ID, "")).strip(),
         room_id = str(row.get(BUNK_NUM_ROOM_ID, "")).strip(),
-        bunk_num = str(row.get(BUNK_NUM_BUNK_NUM, "")).strip().lower() == "true",
+        bunk_num = str(row.get(BUNK_NUM_BUNK_NUM, "")).strip(),
         is_active = str(row.get(BUNK_NUM_IS_ACTIVE, "")).strip().lower() == "true",
     )
 
@@ -450,6 +472,15 @@ def _row_to_stay_area_entity(row: dict[str, Any]) -> StayArea:
         stay_area_id = str(row.get(STAY_AREA_STAY_AREA_ID, 0)),
         stay_area_name = str(row.get(STAY_AREA_STAY_AREA_NAME, "")).strip(),
         is_active = str(row.get(STAY_AREA_IS_ACTIVE, "")).strip().lower() == "true",
+    )
+
+def _row_to_acco_maintenance_type_entity(row: dict[str, Any]) -> AccommodationMaintenanceType:
+    """Convert a Google Sheets row into an Accommodation Maintenance Type entity."""
+
+    return AccommodationMaintenanceType(
+        acco_maintenance_type_id = str(row.get(ACCO_MAINTENANCE_TYPE_ID, 0)),
+        acco_maintenance_type_name = str(row.get(ACCO_MAINTENANCE_TYPE_NAME, "")).strip(),
+        is_active = str(row.get(ACCO_MAINTENANCE_TYPE_IS_ACTIVE, "")).strip().lower() == "true",
     )
 
 def _row_to_subcategory_entity(row: dict[str, Any]) -> SubCategory:
@@ -563,6 +594,7 @@ def fetch_all_sheet_data() -> dict[str, list[list[str]]]:
         SHOWER_WORKSHEET,
         SUB_CATEGORIES_WORKSHEET,
         STAY_AREA_WORKSHEET,
+        ACCO_MAINTENANCE_TYPE_WORKSHEET,
         TEAMS_WORKSHEET,
         VOLUNTEER_CATEGORIES_WORKSHEET,
         VOLUNTEERS_WORKSHEET
@@ -690,6 +722,33 @@ def load_floor_num() -> list[FloorNum]:
         floor_nums.append(_row_to_floor_num_entity(row))
 
     return floor_nums
+
+def load_acco_maintenance_types() -> list[AccommodationMaintenanceType]:
+    """
+    Load Accommodation Maintenance Type records from Google Sheets.
+    """
+
+    all_data = fetch_all_sheet_data()
+    values = all_data.get(ACCO_MAINTENANCE_TYPE_WORKSHEET, [])
+
+    if not values:
+        return ()
+
+    headers = [str(header).strip() for header in values[0]]
+    _validate_headers(headers, ACCO_MAINTENANCE_TYPE_WORKSHEET) # ** Need to check if this is working
+
+    maintenance_types: list[AccommodationMaintenanceType] = []
+
+    for raw_row in values[1:]: # !! Don't know what this padded_row is doing
+        padded_row = raw_row + [""] * max( 
+            0,
+            len(headers) - len(raw_row),
+        )
+
+        row = dict(zip(headers, padded_row))
+        maintenance_types.append(_row_to_acco_maintenance_type_entity(row))
+
+    return maintenance_types
 
 def load_parameters() -> tuple[Parameter, ...]:
     """
@@ -1087,6 +1146,28 @@ class BathroomRepository:
             if bathroom.is_active and bathroom.stay_area_id == stay_area.stay_area_id
         )
 
+# class BunkNumRepository:
+#     """Read-only repository for Bunk Number records."""
+
+#     def __init__(self, bunk_nums: tuple[BunkNumber, ...] | None = None):
+#         self._bunk_nums = (
+#             load_bunk_nums()
+#             if bunk_nums is None
+#             else bunk_nums
+#         )
+
+#     def get_active_bunks(self, room_num_id: str) -> list[BunkNumber]:
+#         """Return all active Bunk Number records."""
+#         print(f"room_num_id: {room_num_id}")
+#         if room_num_id == None:
+#             return []
+
+#         return list(
+#             bunk_num
+#             for bunk_num in self._bunk_nums
+#             if bunk_num.is_active and bunk_num.room_id == room_num_id
+#         )
+
 class BunkNumRepository:
     """Read-only repository for Bunk Number records."""
 
@@ -1096,6 +1177,19 @@ class BunkNumRepository:
             if bunk_nums is None
             else bunk_nums
         )
+
+    def get_active_bunks(self,rooms: Room) -> list[BunkNumber]:
+        """Return all active Bunk records."""
+        if rooms == None:
+            return []
+        
+        return list(
+                    bunk_num
+                    for bunk_num in self._bunk_nums
+                    if bunk_num.is_active and bunk_num.room_id == rooms.room_id
+                )
+
+           
 
 class CategoryRepository:
     """Read-only repository for Category records."""
@@ -1331,7 +1425,18 @@ class RequestRepository:
             self._format_value(request.status),
             self._format_value(request.status_sub_type),
             self._format_value(request.last_edited),
-            self._format_value(request.is_health_related),
+            self._format_value(request.is_health_related), 
+            self._format_value(request.acco_issue_date),
+            self._format_value(request.acco_maintenance_type_id),
+            self._format_value(request.acco_stay_area_id),
+            self._format_value(request.acco_floor_id),
+            self._format_value(request.acco_room_id),
+            self._format_value(request.acco_bunk_id),
+            self._format_value(request.acco_toilet_num),
+            self._format_value(request.acco_shower_num),
+            self._format_value(request.acco_drylines_details),
+            self._format_value(request.acco_corridor_details),
+            self._format_value(request.acco_other_details),
         ]
 
     def write_to_sheet(self, request: Request) -> None:
@@ -1400,6 +1505,25 @@ class StayAreaRepository:
             for stay_area in self._stay_areas
             if stay_area.is_active
         )
+
+
+class AccoMaintenanceTypeRepository:
+    """Read-only repository for Acco Maintenance Type records."""
+
+    def __init__(self, acco_maintenance_types: tuple[AccommodationMaintenanceType, ...] | None = None):
+        self._maintenance_types = (
+            load_acco_maintenance_types()
+            if acco_maintenance_types is None
+            else acco_maintenance_types
+        )
+
+    def get_active_acco_maintenance_types(self) -> list[AccommodationMaintenanceType]:
+            """Return all active Accommodation Maintenance Type records."""
+            return list(
+                maintenance_type
+                for maintenance_type in self._maintenance_types
+                if maintenance_type.is_active
+            )
 
 class SubCategoryRepository:
     """Read-only repository for Sub Category records."""
@@ -1627,10 +1751,6 @@ class VolunteerRepository:
                                 input_phonenum
                             )
                 ]
-        
-
-        
-        print("matches %s", matches)
 
         volunteer = self._select_latest_volunteer_record(matches)
         
