@@ -162,6 +162,17 @@ class Request:
     closed_by: str | None = None # not from streamlit
     reassigned_by: str | None = None # not from streamlit
     is_health_related: bool = False
+    acco_issue_date: date | None = None
+    acco_maintenance_type_id: str | None = None
+    acco_stay_area_id: str | None = None
+    acco_floor_id: str | None = None
+    acco_room_id: str | None = None
+    acco_bunk_id: str | None = None
+    acco_toilet_num: str | None = None
+    acco_shower_num: str | None = None
+    acco_drylines_details: str | None = None
+    acco_corridor_details: str | None = None
+    acco_other_details: str | None = None
 
     def __str__(self) -> str:
         return f"{self.request_id} - {self.request_type} | {self.name} <{self.email_id}> <{self.phone_number}>"
@@ -212,6 +223,18 @@ class StayArea:
 
     def __str__(self) -> str:
         return self.stay_area_name
+
+
+@dataclass
+class AccommodationMaintenanceType:
+    """Represents an accommodation maintenance type record from the Accommodation Maintenance Types Google Sheet."""
+
+    acco_maintenance_type_id: str
+    acco_maintenance_type_name: str
+    is_active: bool
+
+    def __str__(self) -> str:
+        return self.acco_maintenance_type_name    
 
 @dataclass
 class SubCategory:
