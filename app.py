@@ -1,6 +1,5 @@
 from datetime import date, datetime, timedelta
 from pathlib import Path
-import traceback
 from typing import Any
 
 import streamlit as st
@@ -11,9 +10,10 @@ import utils
 import re
 import time
 
-from entities import Bathroom, FloorNum, Log, Request, Room, Shower, StayArea, SubCategory,AccommodationMaintenanceType, BunkNumber
-from repository import BathroomRepository, BunkNumRepository, CategoryRepository, FloorNumRepository, LogRepository, ParameterRepository, RoomRepository, RequestRepository, SettingRepository, ShowerRepository, StayAreaRepository, SubCategoryRepository, VolunteerCategoryRepository, VolunteerRepository, AccoMaintenanceTypeRepository
+from entities import  FloorNum, Request, Room, StayArea, SubCategory,AccommodationMaintenanceType, BunkNumber
+from repository import  BunkNumRepository, CategoryRepository, FloorNumRepository, ParameterRepository, RoomRepository, RequestRepository, SettingRepository, ShowerRepository, StayAreaRepository, SubCategoryRepository, VolunteerCategoryRepository, VolunteerRepository, AccoMaintenanceTypeRepository
 from zoneinfo import ZoneInfo
+from service import EmailService
 
 IST = ZoneInfo("Asia/Kolkata")
 
@@ -62,7 +62,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-bathroom_repo = BathroomRepository()
+# bathroom_repo = BathroomRepository()
 bunk_num_repo = BunkNumRepository()
 category_repo = CategoryRepository()
 floor_num_repo = FloorNumRepository()
@@ -176,7 +176,7 @@ def show_volunteer_email_identification() -> None:
 
         # Log the identification failure
 
-        logger.exception(
+        logger.info(
                         f"Failed to identify user. Email: {email}. {return_msg}",
                         extra={
                                 "ip_address": utils.get_client_ip(),
@@ -926,7 +926,7 @@ def show_custom_date_fields(subcategory: SubCategory) -> None:
             st.session_state["is_from_date_req"] = True
 
             required_label("📅 From Date")
-            from_date = st.date_input("", format="DD/MM/YYYY", key="from_date",
+            from_date = st.date_input(".", format="DD/MM/YYYY", key="from_date",
                                       label_visibility="collapsed",
                                       max_value=max_date_value,
                                       min_value=date.today(),)
@@ -938,7 +938,7 @@ def show_custom_date_fields(subcategory: SubCategory) -> None:
             st.session_state["is_to_date_req"] = True
 
             required_label("📅 To Date")
-            to_date = st.date_input("", value = to_date_value, format="DD/MM/YYYY", key="to_date",
+            to_date = st.date_input(".", value = to_date_value, format="DD/MM/YYYY", key="to_date",
                                     label_visibility="collapsed",
                                     max_value=max_date_value)
 
@@ -1323,26 +1323,30 @@ def show_submit_button():
 
         # Remove full-screen loader
         loader.empty()
-        
-
-        # log_repo = LogRepository()
-
-        # now: datetime = datetime.now()
-        # log: Log = Log(
-        #     log_id = f"L-{now.strftime("%y%m%d-%H%M%S")}",
-        #     ip_address = utils.get_client_ip(),
-        #     email_id = volunteer.email_id,
-        #     phone_number = volunteer.phone_number,
-        #     message = f"Request raised. Request ID: {req.request_id}",
-        #     timestamp = now
-        # )
-        # log_repo.write_to_sheet(log)
-
         return req
-    except Exception:
+    except Exception as e:
         # Remove loader even if something fails
         loader.empty()
-        
+        logger.exception(
+                            "Failed to save request record",
+                            extra={
+                                "ip_address": utils.get_client_ip(),
+                                "vol_email_id": volunteer.email_id if volunteer else "",
+                                "vol_phone_num": volunteer.phone_number if volunteer else "",
+                            }
+                        )
+        try:
+            # Send exception email
+            EmailService().send_exception_email(e, "Failed to save request record")
+        except Exception:
+            logger.exception(
+                                "Failed to send exception notification email",
+                                extra={
+                                        "ip_address": utils.get_client_ip(),
+                                        "vol_email_id": volunteer.email_id if volunteer else "",
+                                        "vol_phone_num": volunteer.phone_number if volunteer else "",
+                                       }
+                            )
         raise
 
 def show_help_text(help_text: str) -> None:
@@ -1508,6 +1512,7 @@ def save_record():
         description += f"\n#Health"
 
     timestamp = datetime.now(IST).strftime("%Y-%m-%d %H:%M:%S")
+    print("input_acco_maintenance_type********",st.session_state.get("input_acco_maintenance_type", None))
     #existing_request_ids = request_repo.get_existing_ids()
     req = Request(
         # request_id = utils.generate_request_id(vol_cat.request_label, existing_request_ids), old code for req id generation
@@ -1581,7 +1586,7 @@ def clear_form_state():
         "coordinator_email",
         "input_coordinator_email",
         "description",
-        "input_description",
+        "input_description"
     ]:
         st.session_state[key] = ""
 
@@ -1592,6 +1597,17 @@ def clear_form_state():
         "input_form_date",
         "to_date",
         "input_to_date",
+        "input_issue_date",
+        "input_acco_maintenance_type",
+        "input_stay_area",
+        "input_floor_num",
+        "input_room",
+        "input_bunk",
+        "input_toilet",
+        "input_shower_desc",
+        "input_drying_lines_desc",
+        "input_corridor_desc",
+        "input_other_desc"
     ]:
         st.session_state.pop(key, None)
 
@@ -1783,7 +1799,7 @@ if __name__ == "__main__":
                 show_volunteer_phone_identification()
 
         elif st.session_state.get("state") == "Form":
-            load_js() # For disabling the form when submitted
+            # load_js() # For disabling the form when submitted
 
             volunteer = st.session_state.get("volunteer")
             if volunteer:
@@ -1854,6 +1870,18 @@ if __name__ == "__main__":
                         "vol_phone_num": volunteer.phone_number if volunteer else "",
                     }
                 )
+        try:
+            # Send exception email
+            EmailService().send_exception_email(e, "Failed while processing request")
+        except Exception:
+            logger.exception(
+                                "Failed to send exception notification email",
+                                extra={
+                                    "ip_address": utils.get_client_ip(),
+                                    "vol_email_id": volunteer.email_id if volunteer else "",
+                                    "vol_phone_num": volunteer.phone_number if volunteer else "",
+                                }
+                            )
         
         # log_repo = LogRepository()
 

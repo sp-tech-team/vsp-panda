@@ -17,6 +17,32 @@ from utils import (
 import utils
 from labels import *
 
+import logging
+
+from db_logger import PostgreSQLHandler
+
+
+logger = logging.getLogger("vsp_panda")
+logger.setLevel(logging.INFO)
+
+def setup_logger():
+
+    if logger.handlers:
+        return
+
+    # Terminal logging
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+
+    # Neon PostgreSQL logging
+    db_handler = PostgreSQLHandler()
+    db_handler.setLevel(logging.INFO)
+
+    logger.addHandler(console_handler)
+    logger.addHandler(db_handler)
+
+
+setup_logger()
 
 
 
@@ -218,9 +244,6 @@ VOLUNTEERS_HEADER = (
 )
 
 #endregion Google Sheets headers
-
-
-
 
 
 
@@ -551,8 +574,13 @@ def _row_to_volunteer_entity(row: dict[str, Any]) -> Volunteer:
 
 
 allCacheRetention = utils.get_setting("allCacheRetention")
-if not allCacheRetention or str(allCacheRetention).isdigit():
-    allCacheRetention = 1800 # default value if nothing is found
+print("str(allCacheRetention).isdigit()", str(allCacheRetention).isdigit())
+
+if not allCacheRetention or not str(allCacheRetention).isdigit():
+    allCacheRetention = 1800
+
+allCacheRetention = int(allCacheRetention)
+print(" final allCacheRetention", allCacheRetention)
 
 # required_tbl_list = [
 #     "categories", 
@@ -574,20 +602,59 @@ if not allCacheRetention or str(allCacheRetention).isdigit():
 
 # region Load data from Google Sheets into entities
 
+# ============================================================
+# Google Sheets API / Cache Debug Counters
+# ============================================================
+
+
+
+# ============================================================
+# Google Sheets API / Cache Debug Counters
+# ============================================================
+
+@st.cache_resource
+def get_gsheet_debug_counter():
+    return {"api_hits": 0}
+
+
+def reset_gsheet_debug():
+    counter = get_gsheet_debug_counter()
+    counter["api_hits"] = 0
+
+    st.session_state["gsheet_fetch_calls"] = 0
+    st.session_state["gsheet_cache_hits"] = 0
+
+
 @st.cache_data(ttl=allCacheRetention, show_spinner=False)
-def fetch_all_sheet_data() -> dict[str, list[list[str]]]:
+def _fetch_all_sheet_data_cached() -> dict[str, list[list[str]]]:
     """
-    Fetches raw data for ALL worksheets in 1 single API call.
+    Fetch raw data for ALL worksheets.
+
+    This function executes only when the Streamlit cache is missed.
+    Therefore every execution means one actual Google Sheets API call.
     """
+
+    counter = get_gsheet_debug_counter()
+    counter["api_hits"] += 1
+
+    print(
+        f"[GSHEET API HIT #{counter['api_hits']}] "
+        f"values_batch_get - 15 tabs"
+    )
+    # Log the Gsheet API Hit 
+    logger.info(
+                f"[GSHEET API HIT #{counter['api_hits']}] "
+                f"values_batch_get - 15 tabs",
+                )
+
     sheet = get_google_sheet()
-    
-    # List all tab names you want to load
+
     target_tabs = [
         BATHROOM_WORKSHEET,
         BUNK_NUM_WORKSHEET,
         CATEGORIES_WORKSHEET,
-        FLOOR_NUM_WORKSHEET, 
-        PARAMETERS_WORKSHEET, 
+        FLOOR_NUM_WORKSHEET,
+        PARAMETERS_WORKSHEET,
         PROGRAM_DATES_WORKSHEET,
         ROOM_WORKSHEET,
         SETTINGS_WORKSHEET,
@@ -599,17 +666,52 @@ def fetch_all_sheet_data() -> dict[str, list[list[str]]]:
         VOLUNTEER_CATEGORIES_WORKSHEET,
         VOLUNTEERS_WORKSHEET
     ]
-    
-    # Batch call - 1 API Hit for all tabs combined!
+
+    # ONE actual Google Sheets API call
     res = sheet.values_batch_get(target_tabs)
-    
+
     data_by_tab = {}
+
     for value_range in res.get("valueRanges", []):
-        # Extract tab name from range format "Categories!A1:Z100"
         tab_name = value_range.get("range", "").split("!")[0].strip("'")
         data_by_tab[tab_name] = value_range.get("values", [])
-        
+
     return data_by_tab
+
+
+def fetch_all_sheet_data() -> dict[str, list[list[str]]]:
+    """
+    Wrapper around the cached Google Sheets fetch.
+
+    Every call to this function is counted as a fetch request.
+    If the cached function does not execute, it was a cache hit.
+    """
+
+    if "gsheet_fetch_calls" not in st.session_state:
+        st.session_state["gsheet_fetch_calls"] = 0
+
+    # if "gsheet_cache_hits" not in st.session_state:
+    #     st.session_state["gsheet_cache_hits"] = 0
+
+    counter = get_gsheet_debug_counter()
+    api_hits_before = counter["api_hits"]
+
+    st.session_state["gsheet_fetch_calls"] += 1
+
+    result = _fetch_all_sheet_data_cached()
+
+    api_hits_after = counter["api_hits"]
+
+    # If the API counter did not change, Streamlit returned cached data.
+    # if api_hits_after == api_hits_before:
+    #     st.session_state["gsheet_cache_hits"] += 1
+
+    #     print(
+    #         f"[GSHEET CACHE HIT "
+    #         f"#{st.session_state['gsheet_cache_hits']}]"
+    #     )
+
+    return result
 
 
 
@@ -777,32 +879,6 @@ def load_parameters() -> tuple[Parameter, ...]:
 
     return tuple(parameters)
 
-# def load_programs() -> tuple[Program, ...]:
-#     """
-#     Load Program records from Google Sheets.
-#     """
-    
-#     all_data = fetch_all_sheet_data()
-#     values = all_data.get(PROGRAMS_WORKSHEET, [])
-
-#     if not values:
-#         return ()
-
-#     headers = [str(header).strip() for header in values[0]]
-#     _validate_headers(headers, PROGRAMS_WORKSHEET) # ** Need to check if this is working
-
-#     programs: list[Program] = []
-
-#     for raw_row in values[1:]: # !! Don't know what this padded_row is doing
-#         padded_row = raw_row + [""] * max( 
-#             0,
-#             len(headers) - len(raw_row),
-#         )
-
-#         row = dict(zip(headers, padded_row))
-#         programs.append(_row_to_program_entity(row))
-
-#     return tuple(programs)
 
 def load_program_dates() -> tuple[ProgramDates, ...]:
     """
@@ -831,35 +907,6 @@ def load_program_dates() -> tuple[ProgramDates, ...]:
 
     return tuple(programs)
 
-# def load_program_team_mapping() -> tuple[ProgramToTeamMapping, ...]:
-#     """
-#     Load Program Team Mapping records from Google Sheets.
-#     """
-    
-#     if sheet == None:
-#         sheet = get_google_sheet()
-
-#     worksheet = sheet.worksheet(PROGRAM_TEAM_MAPPING_WORKSHEET) # ** Need to check if this is working
-#     values = worksheet.get_all_values()
-
-#     if not values:
-#         return ()
-
-#     headers = [str(header).strip() for header in values[0]]
-#     _validate_headers(headers, PROGRAM_TEAM_MAPPING_WORKSHEET) # ** Need to check if this is working
-
-#     mapping: list[ProgramToTeamMapping] = []
-
-#     for raw_row in values[1:]: # !! Don't know what this padded_row is doing
-#         padded_row = raw_row + [""] * max( 
-#             0,
-#             len(headers) - len(raw_row),
-#         )
-
-#         row = dict(zip(headers, padded_row))
-#         mapping.append(_row_to_program_team_mapping_entity(row))
-
-#     return tuple(mapping)
 
 def load_rooms() -> list[Room]:
     """
