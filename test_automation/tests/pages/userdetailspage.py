@@ -75,18 +75,20 @@ class UserDetailsPage:
 
         elif (testdata['SubCategory'] is not None):
             self.select_subcategory(testdata['SubCategory'])
+            time.sleep(30)
         else:
             pytest.skip(
                 "Sub category is not available. Skipping this scenario.")
 
         if (testdata["ProgramDate"] is not None):
-            if self.pgmavailable.is_visible():
-                pytest.skip(
-                    "Program is not available. Skipping this scenario.")
 
             if self.pgmdeptdate.is_visible():
                 pytest.skip(
                     "Program after departure date. Skipping this scenario.")
+
+            if self.pgmavailable.is_visible():
+                pytest.skip(
+                    "Program is not available. Skipping this scenario.")
 
             self.select_prgmdates()
 
@@ -179,6 +181,7 @@ class UserDetailsPage:
         self.submit_req.click()
 
     def get_reqid(self, scenario_name):
+        time.sleep(30)
         try:
             if scenario_name == "test_ltv_usrdtl_neg_silence_3day":
                 if not self.silenceerrormsg.is_visible():
