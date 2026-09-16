@@ -7,6 +7,7 @@ from dataclasses import asdict
 from datetime import date, datetime
 from email.message import EmailMessage
 from pathlib import Path
+import traceback
 from typing import Any
 
 import streamlit as st
@@ -216,19 +217,19 @@ class EmailService:
             </tr>
         """
 
-        if request.from_date.strip():
+        if request.from_date:
             request_details += f"""
                 <tr>
                     <th>From Date</th>
-                    <td>{request.from_date.strftime("%d/%M/%Y")}</td>
+                    <td>{request.from_date.strftime("%d/%m/%Y")}</td>
                 </tr>
             """
 
-        if request.to_date.strip():
+        if request.to_date:
             request_details += f"""
                 <tr>
                     <th>To Date</th>
-                    <td>{request.to_date.strftime("%d/%M/%Y")}</td>
+                    <td>{request.to_date.strftime("%d/%m/%Y")}</td>
                 </tr>
             """
 
@@ -250,3 +251,52 @@ class EmailService:
         request_details += "</table>"
 
         return request_details
+
+    def send_exception_email(
+        self,
+        exception: Exception,
+        context: str = "",
+    ) -> None:
+        """Send an email when an unexpected exception occurs."""
+
+        subject = "VSP Panda - Application Exception"
+
+        exception_type = type(exception).__name__
+        exception_message = str(exception)
+        traceback_text = traceback.format_exc()
+
+        html_body = f"""
+        <html>
+        <body>
+
+            <h3>VSP Panda Application Exception</h3>
+
+            <p><strong>Context:</strong> {context}</p>
+
+            <p>
+                <strong>Exception Type:</strong>
+                {exception_type}
+            </p>
+
+            <p>
+                <strong>Exception Message:</strong>
+                {exception_message}
+            </p>
+
+            <h4>Traceback</h4>
+
+            <pre>
+                {traceback_text}
+            </pre>
+
+        </body>
+        </html>
+        """
+
+        exception_email = st.secrets["smtp"]["exception_email"]
+
+        self._send_email(
+            recipient=exception_email,
+            subject=subject,
+            html_body=html_body,
+        )

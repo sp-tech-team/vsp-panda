@@ -17,6 +17,32 @@ from utils import (
 import utils
 from labels import *
 
+import logging
+
+from db_logger import PostgreSQLHandler
+
+
+logger = logging.getLogger("vsp_panda")
+logger.setLevel(logging.INFO)
+
+def setup_logger():
+
+    if logger.handlers:
+        return
+
+    # Terminal logging
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+
+    # Neon PostgreSQL logging
+    db_handler = PostgreSQLHandler()
+    db_handler.setLevel(logging.INFO)
+
+    logger.addHandler(console_handler)
+    logger.addHandler(db_handler)
+
+
+setup_logger()
 
 
 
@@ -129,7 +155,19 @@ REQUESTS_HEADER = (
     REQUESTS_CLOSED_BY,
     REQUESTS_CLOSED_ON,
     REQUESTS_REASSIGNED_BY,
-    REQUESTS_HEALTH_RELATED_BOOL
+    REQUESTS_HEALTH_RELATED_BOOL,
+    REQUESTS_ACCO_ISSUE_DATE,
+    REQUESTS_ACCO_MAINTENANCE_TYPE_ID,
+    REQUESTS_ACCO_STAY_AREA_ID,
+    REQUESTS_ACCO_FLOOR_ID,
+    REQUESTS_ACCO_ROOM_ID,
+    REQUESTS_ACCO_BUNK_ID,
+    REQUESTS_ACCO_TOILET_NUM,
+    REQUESTS_ACCO_SHOWER_NUM,
+    REQUESTS_ACCO_DRYLINES_DETAILS,
+    REQUESTS_ACCO_CORRIDOR_DETAILS,
+    REQUESTS_ACCO_OTHER_DETAILS
+
 )
 
 SETTINGS_HEADER = (
@@ -150,6 +188,12 @@ STAY_AREA_HEADER = (
     STAY_AREA_STAY_AREA_ID,
     STAY_AREA_STAY_AREA_NAME,
     STAY_AREA_IS_ACTIVE,
+)
+
+ACCO_MAINTENANCE_TYPE_HEADER = (
+    ACCO_MAINTENANCE_TYPE_ID,
+    ACCO_MAINTENANCE_TYPE_NAME,
+    ACCO_MAINTENANCE_TYPE_IS_ACTIVE,
 )
 
 SUB_CATEGORIES_MASTER_HEADER = (
@@ -200,9 +244,6 @@ VOLUNTEERS_HEADER = (
 )
 
 #endregion Google Sheets headers
-
-
-
 
 
 
@@ -296,6 +337,10 @@ def _validate_headers(headers: list[str], worksheet: str) -> None:
         missing_headers = [
             header for header in STAY_AREA_HEADER if header not in headers
         ]
+    elif worksheet == ACCO_MAINTENANCE_TYPE_WORKSHEET:
+            missing_headers = [
+                header for header in ACCO_MAINTENANCE_TYPE_HEADER if header not in headers
+            ]
     elif worksheet == SUB_CATEGORIES_WORKSHEET:
         missing_headers = [
             header for header in SUB_CATEGORIES_MASTER_HEADER if header not in headers
@@ -345,7 +390,7 @@ def _row_to_bunk_num_entity(row: dict[str, Any]) -> BunkNumber:
         bunk_id = str(row.get(BUNK_NUM_BUNK_ID, 0)),
         stay_area_id = str(row.get(BUNK_NUM_STAY_AREA_ID, "")).strip(),
         room_id = str(row.get(BUNK_NUM_ROOM_ID, "")).strip(),
-        bunk_num = str(row.get(BUNK_NUM_BUNK_NUM, "")).strip().lower() == "true",
+        bunk_num = str(row.get(BUNK_NUM_BUNK_NUM, "")).strip(),
         is_active = str(row.get(BUNK_NUM_IS_ACTIVE, "")).strip().lower() == "true",
     )
 
@@ -452,6 +497,15 @@ def _row_to_stay_area_entity(row: dict[str, Any]) -> StayArea:
         is_active = str(row.get(STAY_AREA_IS_ACTIVE, "")).strip().lower() == "true",
     )
 
+def _row_to_acco_maintenance_type_entity(row: dict[str, Any]) -> AccommodationMaintenanceType:
+    """Convert a Google Sheets row into an Accommodation Maintenance Type entity."""
+
+    return AccommodationMaintenanceType(
+        acco_maintenance_type_id = str(row.get(ACCO_MAINTENANCE_TYPE_ID, 0)),
+        acco_maintenance_type_name = str(row.get(ACCO_MAINTENANCE_TYPE_NAME, "")).strip(),
+        is_active = str(row.get(ACCO_MAINTENANCE_TYPE_IS_ACTIVE, "")).strip().lower() == "true",
+    )
+
 def _row_to_subcategory_entity(row: dict[str, Any]) -> SubCategory:
     """Convert a Google Sheets row into a Sub Category entity."""
 
@@ -520,8 +574,13 @@ def _row_to_volunteer_entity(row: dict[str, Any]) -> Volunteer:
 
 
 allCacheRetention = utils.get_setting("allCacheRetention")
-if not allCacheRetention or str(allCacheRetention).isdigit():
-    allCacheRetention = 1800 # default value if nothing is found
+print("str(allCacheRetention).isdigit()", str(allCacheRetention).isdigit())
+
+if not allCacheRetention or not str(allCacheRetention).isdigit():
+    allCacheRetention = 1800
+
+allCacheRetention = int(allCacheRetention)
+print(" final allCacheRetention", allCacheRetention)
 
 # required_tbl_list = [
 #     "categories", 
@@ -543,41 +602,116 @@ if not allCacheRetention or str(allCacheRetention).isdigit():
 
 # region Load data from Google Sheets into entities
 
+# ============================================================
+# Google Sheets API / Cache Debug Counters
+# ============================================================
+
+
+
+# ============================================================
+# Google Sheets API / Cache Debug Counters
+# ============================================================
+
+@st.cache_resource
+def get_gsheet_debug_counter():
+    return {"api_hits": 0}
+
+
+def reset_gsheet_debug():
+    counter = get_gsheet_debug_counter()
+    counter["api_hits"] = 0
+
+    st.session_state["gsheet_fetch_calls"] = 0
+    st.session_state["gsheet_cache_hits"] = 0
+
+
 @st.cache_data(ttl=allCacheRetention, show_spinner=False)
-def fetch_all_sheet_data() -> dict[str, list[list[str]]]:
+def _fetch_all_sheet_data_cached() -> dict[str, list[list[str]]]:
     """
-    Fetches raw data for ALL worksheets in 1 single API call.
+    Fetch raw data for ALL worksheets.
+
+    This function executes only when the Streamlit cache is missed.
+    Therefore every execution means one actual Google Sheets API call.
     """
+
+    counter = get_gsheet_debug_counter()
+    counter["api_hits"] += 1
+
+    print(
+        f"[GSHEET API HIT #{counter['api_hits']}] "
+        f"values_batch_get - 15 tabs"
+    )
+    # Log the Gsheet API Hit 
+    logger.info(
+                f"[GSHEET API HIT #{counter['api_hits']}] "
+                f"values_batch_get - 15 tabs",
+                )
+
     sheet = get_google_sheet()
-    
-    # List all tab names you want to load
+
     target_tabs = [
         BATHROOM_WORKSHEET,
         BUNK_NUM_WORKSHEET,
         CATEGORIES_WORKSHEET,
-        FLOOR_NUM_WORKSHEET, 
-        PARAMETERS_WORKSHEET, 
+        FLOOR_NUM_WORKSHEET,
+        PARAMETERS_WORKSHEET,
         PROGRAM_DATES_WORKSHEET,
         ROOM_WORKSHEET,
         SETTINGS_WORKSHEET,
         SHOWER_WORKSHEET,
         SUB_CATEGORIES_WORKSHEET,
         STAY_AREA_WORKSHEET,
+        ACCO_MAINTENANCE_TYPE_WORKSHEET,
         TEAMS_WORKSHEET,
         VOLUNTEER_CATEGORIES_WORKSHEET,
         VOLUNTEERS_WORKSHEET
     ]
-    
-    # Batch call - 1 API Hit for all tabs combined!
+
+    # ONE actual Google Sheets API call
     res = sheet.values_batch_get(target_tabs)
-    
+
     data_by_tab = {}
+
     for value_range in res.get("valueRanges", []):
-        # Extract tab name from range format "Categories!A1:Z100"
         tab_name = value_range.get("range", "").split("!")[0].strip("'")
         data_by_tab[tab_name] = value_range.get("values", [])
-        
+
     return data_by_tab
+
+
+def fetch_all_sheet_data() -> dict[str, list[list[str]]]:
+    """
+    Wrapper around the cached Google Sheets fetch.
+
+    Every call to this function is counted as a fetch request.
+    If the cached function does not execute, it was a cache hit.
+    """
+
+    if "gsheet_fetch_calls" not in st.session_state:
+        st.session_state["gsheet_fetch_calls"] = 0
+
+    # if "gsheet_cache_hits" not in st.session_state:
+    #     st.session_state["gsheet_cache_hits"] = 0
+
+    counter = get_gsheet_debug_counter()
+    api_hits_before = counter["api_hits"]
+
+    st.session_state["gsheet_fetch_calls"] += 1
+
+    result = _fetch_all_sheet_data_cached()
+
+    api_hits_after = counter["api_hits"]
+
+    # If the API counter did not change, Streamlit returned cached data.
+    # if api_hits_after == api_hits_before:
+    #     st.session_state["gsheet_cache_hits"] += 1
+
+    #     print(
+    #         f"[GSHEET CACHE HIT "
+    #         f"#{st.session_state['gsheet_cache_hits']}]"
+    #     )
+
+    return result
 
 
 
@@ -691,6 +825,33 @@ def load_floor_num() -> list[FloorNum]:
 
     return floor_nums
 
+def load_acco_maintenance_types() -> list[AccommodationMaintenanceType]:
+    """
+    Load Accommodation Maintenance Type records from Google Sheets.
+    """
+
+    all_data = fetch_all_sheet_data()
+    values = all_data.get(ACCO_MAINTENANCE_TYPE_WORKSHEET, [])
+
+    if not values:
+        return ()
+
+    headers = [str(header).strip() for header in values[0]]
+    _validate_headers(headers, ACCO_MAINTENANCE_TYPE_WORKSHEET) # ** Need to check if this is working
+
+    maintenance_types: list[AccommodationMaintenanceType] = []
+
+    for raw_row in values[1:]: # !! Don't know what this padded_row is doing
+        padded_row = raw_row + [""] * max( 
+            0,
+            len(headers) - len(raw_row),
+        )
+
+        row = dict(zip(headers, padded_row))
+        maintenance_types.append(_row_to_acco_maintenance_type_entity(row))
+
+    return maintenance_types
+
 def load_parameters() -> tuple[Parameter, ...]:
     """
     Load Parameter records from Google Sheets.
@@ -718,32 +879,6 @@ def load_parameters() -> tuple[Parameter, ...]:
 
     return tuple(parameters)
 
-# def load_programs() -> tuple[Program, ...]:
-#     """
-#     Load Program records from Google Sheets.
-#     """
-    
-#     all_data = fetch_all_sheet_data()
-#     values = all_data.get(PROGRAMS_WORKSHEET, [])
-
-#     if not values:
-#         return ()
-
-#     headers = [str(header).strip() for header in values[0]]
-#     _validate_headers(headers, PROGRAMS_WORKSHEET) # ** Need to check if this is working
-
-#     programs: list[Program] = []
-
-#     for raw_row in values[1:]: # !! Don't know what this padded_row is doing
-#         padded_row = raw_row + [""] * max( 
-#             0,
-#             len(headers) - len(raw_row),
-#         )
-
-#         row = dict(zip(headers, padded_row))
-#         programs.append(_row_to_program_entity(row))
-
-#     return tuple(programs)
 
 def load_program_dates() -> tuple[ProgramDates, ...]:
     """
@@ -772,35 +907,6 @@ def load_program_dates() -> tuple[ProgramDates, ...]:
 
     return tuple(programs)
 
-# def load_program_team_mapping() -> tuple[ProgramToTeamMapping, ...]:
-#     """
-#     Load Program Team Mapping records from Google Sheets.
-#     """
-    
-#     if sheet == None:
-#         sheet = get_google_sheet()
-
-#     worksheet = sheet.worksheet(PROGRAM_TEAM_MAPPING_WORKSHEET) # ** Need to check if this is working
-#     values = worksheet.get_all_values()
-
-#     if not values:
-#         return ()
-
-#     headers = [str(header).strip() for header in values[0]]
-#     _validate_headers(headers, PROGRAM_TEAM_MAPPING_WORKSHEET) # ** Need to check if this is working
-
-#     mapping: list[ProgramToTeamMapping] = []
-
-#     for raw_row in values[1:]: # !! Don't know what this padded_row is doing
-#         padded_row = raw_row + [""] * max( 
-#             0,
-#             len(headers) - len(raw_row),
-#         )
-
-#         row = dict(zip(headers, padded_row))
-#         mapping.append(_row_to_program_team_mapping_entity(row))
-
-#     return tuple(mapping)
 
 def load_rooms() -> list[Room]:
     """
@@ -1087,6 +1193,28 @@ class BathroomRepository:
             if bathroom.is_active and bathroom.stay_area_id == stay_area.stay_area_id
         )
 
+# class BunkNumRepository:
+#     """Read-only repository for Bunk Number records."""
+
+#     def __init__(self, bunk_nums: tuple[BunkNumber, ...] | None = None):
+#         self._bunk_nums = (
+#             load_bunk_nums()
+#             if bunk_nums is None
+#             else bunk_nums
+#         )
+
+#     def get_active_bunks(self, room_num_id: str) -> list[BunkNumber]:
+#         """Return all active Bunk Number records."""
+#         print(f"room_num_id: {room_num_id}")
+#         if room_num_id == None:
+#             return []
+
+#         return list(
+#             bunk_num
+#             for bunk_num in self._bunk_nums
+#             if bunk_num.is_active and bunk_num.room_id == room_num_id
+#         )
+
 class BunkNumRepository:
     """Read-only repository for Bunk Number records."""
 
@@ -1096,6 +1224,19 @@ class BunkNumRepository:
             if bunk_nums is None
             else bunk_nums
         )
+
+    def get_active_bunks(self,rooms: Room) -> list[BunkNumber]:
+        """Return all active Bunk records."""
+        if rooms == None:
+            return []
+        
+        return list(
+                    bunk_num
+                    for bunk_num in self._bunk_nums
+                    if bunk_num.is_active and bunk_num.room_id == rooms.room_id
+                )
+
+           
 
 class CategoryRepository:
     """Read-only repository for Category records."""
@@ -1331,7 +1472,18 @@ class RequestRepository:
             self._format_value(request.status),
             self._format_value(request.status_sub_type),
             self._format_value(request.last_edited),
-            self._format_value(request.is_health_related),
+            self._format_value(request.is_health_related), 
+            self._format_value(request.acco_issue_date),
+            self._format_value(request.acco_maintenance_type_id),
+            self._format_value(request.acco_stay_area_id),
+            self._format_value(request.acco_floor_id),
+            self._format_value(request.acco_room_id),
+            self._format_value(request.acco_bunk_id),
+            self._format_value(request.acco_toilet_num),
+            self._format_value(request.acco_shower_num),
+            self._format_value(request.acco_drylines_details),
+            self._format_value(request.acco_corridor_details),
+            self._format_value(request.acco_other_details),
         ]
 
     def write_to_sheet(self, request: Request) -> None:
@@ -1400,6 +1552,25 @@ class StayAreaRepository:
             for stay_area in self._stay_areas
             if stay_area.is_active
         )
+
+
+class AccoMaintenanceTypeRepository:
+    """Read-only repository for Acco Maintenance Type records."""
+
+    def __init__(self, acco_maintenance_types: tuple[AccommodationMaintenanceType, ...] | None = None):
+        self._maintenance_types = (
+            load_acco_maintenance_types()
+            if acco_maintenance_types is None
+            else acco_maintenance_types
+        )
+
+    def get_active_acco_maintenance_types(self) -> list[AccommodationMaintenanceType]:
+            """Return all active Accommodation Maintenance Type records."""
+            return list(
+                maintenance_type
+                for maintenance_type in self._maintenance_types
+                if maintenance_type.is_active
+            )
 
 class SubCategoryRepository:
     """Read-only repository for Sub Category records."""
@@ -1627,10 +1798,6 @@ class VolunteerRepository:
                                 input_phonenum
                             )
                 ]
-        
-
-        
-        print("matches %s", matches)
 
         volunteer = self._select_latest_volunteer_record(matches)
         

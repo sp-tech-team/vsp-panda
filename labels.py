@@ -193,9 +193,17 @@ REQUESTS_CLOSED_BY = "Closed By"
 REQUESTS_CLOSED_ON = "Closed On"
 REQUESTS_REASSIGNED_BY = "Reassigned by"
 REQUESTS_HEALTH_RELATED_BOOL = "Is Health related"
-
-
-
+REQUESTS_ACCO_ISSUE_DATE = "Acco Issue Date"
+REQUESTS_ACCO_MAINTENANCE_TYPE_ID = "Acco Maintenance Type ID"
+REQUESTS_ACCO_STAY_AREA_ID = "Acco Stay Area ID"
+REQUESTS_ACCO_FLOOR_ID = "Acco Floor ID"
+REQUESTS_ACCO_ROOM_ID = "Acco Room ID"
+REQUESTS_ACCO_BUNK_ID = "Acco Bunk ID"
+REQUESTS_ACCO_TOILET_NUM = "Acco Toilet Num"
+REQUESTS_ACCO_SHOWER_NUM = "Acco Shower Num"
+REQUESTS_ACCO_DRYLINES_DETAILS = "Acco Drylines Details"
+REQUESTS_ACCO_CORRIDOR_DETAILS = "Acco Corridor Details"
+REQUESTS_ACCO_OTHER_DETAILS = "Acco Other Details"
 
 # Settings
 
@@ -238,6 +246,16 @@ STAY_AREA_STAY_AREA_NAME = "Stay Area Name"
 STAY_AREA_IS_ACTIVE = "Is Active"
 
 
+
+# Accomodation Maintenance 
+
+ACCO_MAINTENANCE_TYPE_WORKSHEET = "Acco Maintenance Types"
+
+# Accomodation Maintenance Header
+
+ACCO_MAINTENANCE_TYPE_ID = "Acco Maintenance Type ID"
+ACCO_MAINTENANCE_TYPE_NAME = "Acco Maintenance Type Name"
+ACCO_MAINTENANCE_TYPE_IS_ACTIVE = "Is Active"
 
 
 
