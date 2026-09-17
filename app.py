@@ -489,60 +489,60 @@ def show_subcategory_selection(col) -> None:
         st.session_state.pop("input_subcategory", None)
         st.session_state.pop("input_subcategory_name", None)
 
-def render_dynamic_dropdowns(sub_cat: SubCategory) -> None:
-    dynamic_dropdowns = []
+# def render_dynamic_dropdowns(sub_cat: SubCategory) -> None:
+#     dynamic_dropdowns = []
 
-    if sub_cat.dynamic_dropdown_fields != []:
-        for index, field_name in enumerate(sub_cat.dynamic_dropdown_fields):
-            dynamic_dropdowns.append({
-                "name": field_name,
-                "is_req": True,
-                "key_name": f"ddl_{index}"
-            })
+#     if sub_cat.dynamic_dropdown_fields != []:
+#         for index, field_name in enumerate(sub_cat.dynamic_dropdown_fields):
+#             dynamic_dropdowns.append({
+#                 "name": field_name,
+#                 "is_req": True,
+#                 "key_name": f"ddl_{index}"
+#             })
 
-    st.session_state["dynamic_dropdowns"] = dynamic_dropdowns
+#     st.session_state["dynamic_dropdowns"] = dynamic_dropdowns
 
-    col1, col2 = st.columns(2)
+#     col1, col2 = st.columns(2)
 
-    cur_col = col1
-    for field in dynamic_dropdowns:
-        with cur_col:
-            option_values = parameter_repo.get_by_key(field["name"])
-            if field["is_req"]:
-                required_label(field["name"])
+#     cur_col = col1
+#     for field in dynamic_dropdowns:
+#         with cur_col:
+#             option_values = parameter_repo.get_by_key(field["name"])
+#             if field["is_req"]:
+#                 required_label(field["name"])
             
-            st.selectbox(field["name"] if not field["is_req"] else "", 
-                        option_values, index = None, 
-                        key = field["key_name"],
-                        label_visibility = "collapsed",
-                        placeholder = f"Select {field["name"]}")
+#             st.selectbox(field["name"] if not field["is_req"] else "", 
+#                         option_values, index = None, 
+#                         key = field["key_name"],
+#                         label_visibility = "collapsed",
+#                         placeholder = f"Select {field["name"]}")
 
-            cur_col = col1 if cur_col != col1 else col2
+#             cur_col = col1 if cur_col != col1 else col2
 
-def render_dynamic_textbox(sub_cat: SubCategory) -> None:
-    dynamic_textbox = []
-    for index, field_name in enumerate(sub_cat.dynamic_textbox_fields):
-        dynamic_textbox.append({
-            "name": field_name,
-            "is_req": True,
-            "key_name": f"tb_{index}"
-        })
+# def render_dynamic_textbox(sub_cat: SubCategory) -> None:
+#     dynamic_textbox = []
+#     for index, field_name in enumerate(sub_cat.dynamic_textbox_fields):
+#         dynamic_textbox.append({
+#             "name": field_name,
+#             "is_req": True,
+#             "key_name": f"tb_{index}"
+#         })
 
-    st.session_state["dynamic_textbox"] = dynamic_textbox
+#     st.session_state["dynamic_textbox"] = dynamic_textbox
 
-    col1, col2 = st.columns(2)
+#     col1, col2 = st.columns(2)
 
-    cur_col = col1
-    for field in dynamic_textbox:
-        with cur_col:
-            if field["is_req"]:
-                required_label(field["name"])
+#     cur_col = col1
+#     for field in dynamic_textbox:
+#         with cur_col:
+#             if field["is_req"]:
+#                 required_label(field["name"])
 
-            st.text_input(field["name"] if not field["is_req"] else "", 
-                            placeholder=field["name"], key = field["key_name"],
-                            label_visibility="collapsed",)
+#             st.text_input(field["name"] if not field["is_req"] else "", 
+#                             placeholder=field["name"], key = field["key_name"],
+#                             label_visibility="collapsed",)
 
-            cur_col = col1 if cur_col != col1 else col2
+#             cur_col = col1 if cur_col != col1 else col2
 
 def show_acco_other_details_textbox():
 
@@ -1150,28 +1150,28 @@ def show_submit_button():
             )
             
 
-    dynamic_dropdowns = st.session_state.get("dynamic_dropdowns", None)
-    if dynamic_dropdowns:
-        for field in dynamic_dropdowns:
-            if field["is_req"]:
-                validation_results.append(
-                    validate_required(
-                        st.session_state.get(field["key_name"], ""),
-                        f"⚠️ '{field["name"]}' is required."
-                    )
-                )
+    # dynamic_dropdowns = st.session_state.get("dynamic_dropdowns", None)
+    # if dynamic_dropdowns:
+    #     for field in dynamic_dropdowns:
+    #         if field["is_req"]:
+    #             validation_results.append(
+    #                 validate_required(
+    #                     st.session_state.get(field["key_name"], ""),
+    #                     f"⚠️ '{field["name"]}' is required."
+    #                 )
+    #             )
 
 
-    dynamic_textbox = st.session_state.get("dynamic_textbox", None)
-    if dynamic_textbox:
-        for field in dynamic_textbox:
-            if field["is_req"]:
-                validation_results.append(
-                    validate_required(
-                        st.session_state.get(field["key_name"], ""),
-                        f"⚠️ '{field["name"]}' is required."
-                    )
-                )
+    # dynamic_textbox = st.session_state.get("dynamic_textbox", None)
+    # if dynamic_textbox:
+    #     for field in dynamic_textbox:
+    #         if field["is_req"]:
+    #             validation_results.append(
+    #                 validate_required(
+    #                     st.session_state.get(field["key_name"], ""),
+    #                     f"⚠️ '{field["name"]}' is required."
+    #                 )
+    #             )
 
     is_program_req = st.session_state.get("is_program_req", False)
     if is_program_req:
@@ -1493,17 +1493,17 @@ def save_record():
         input_other = st.session_state.get("input_other_desc", "")
         description += f"\nOther: {input_other}"
 
-    dynamic_dropdowns = st.session_state.get("dynamic_dropdowns", None)
-    if dynamic_dropdowns:
-        for field in dynamic_dropdowns:
-            value = st.session_state[field["key_name"]]
-            description += f"\n{field["name"]}: {value}"
+    # dynamic_dropdowns = st.session_state.get("dynamic_dropdowns", None)
+    # if dynamic_dropdowns:
+    #     for field in dynamic_dropdowns:
+    #         value = st.session_state[field["key_name"]]
+    #         description += f"\n{field["name"]}: {value}"
 
-    dynamic_textbox = st.session_state.get("dynamic_textbox", None)
-    if dynamic_textbox:
-        for field in dynamic_textbox:
-            value = st.session_state[field["key_name"]]
-            description += f"\n{field["name"]}: {value}"
+    # dynamic_textbox = st.session_state.get("dynamic_textbox", None)
+    # if dynamic_textbox:
+    #     for field in dynamic_textbox:
+    #         value = st.session_state[field["key_name"]]
+    #         description += f"\n{field["name"]}: {value}"
 
     if coordinator_email and not coordinator_email.isspace():
         description += f"\nKarma Sadhana Coordinator Mail ID: {coordinator_email}"
@@ -1611,19 +1611,19 @@ def clear_form_state():
     ]:
         st.session_state.pop(key, None)
 
-    # Dynamic dropdowns
-    dynamic_dropdowns = st.session_state.pop("dynamic_dropdowns", None)
+    # # Dynamic dropdowns
+    # dynamic_dropdowns = st.session_state.pop("dynamic_dropdowns", None)
 
-    if dynamic_dropdowns:
-        for field in dynamic_dropdowns:
-            st.session_state.pop(field["key_name"], None)
+    # if dynamic_dropdowns:
+    #     for field in dynamic_dropdowns:
+    #         st.session_state.pop(field["key_name"], None)
 
-    # Dynamic textboxes
-    dynamic_textbox = st.session_state.pop("dynamic_textbox", None)
+    # # Dynamic textboxes
+    # dynamic_textbox = st.session_state.pop("dynamic_textbox", None)
 
-    if dynamic_textbox:
-        for field in dynamic_textbox:
-            st.session_state.pop(field["key_name"], None)
+    # if dynamic_textbox:
+    #     for field in dynamic_textbox:
+    #         st.session_state.pop(field["key_name"], None)
 
 def reset_form():
     """
@@ -1822,8 +1822,8 @@ if __name__ == "__main__":
 
                 input_subcategory = st.session_state.get("input_subcategory")
                 if input_subcategory != None and input_subcategory != '':
-                    render_dynamic_dropdowns(input_subcategory)
-                    render_dynamic_textbox(input_subcategory)
+                    # render_dynamic_dropdowns(input_subcategory)
+                    # render_dynamic_textbox(input_subcategory)
                     if input_category.has_programs:
                         if (not input_subcategory.show_from_date_input and 
                             not input_subcategory.show_to_date_input):

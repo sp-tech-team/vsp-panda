@@ -211,8 +211,8 @@ SUB_CATEGORIES_MASTER_HEADER = (
     SUB_CATEGORY_SHOW_COORDINATOR_EMAIL,
     # SUB_CATEGORY_DISPLAY_ORDER,
     SUB_CATEGORY_DURATION_IN_DAYS,
-    SUB_CATEGORY_DYNAMIC_DROPDOWN_FIELDS,
-    SUB_CATEGORY_DYNAMIC_TEXTBOX_FIELDS,
+    # SUB_CATEGORY_DYNAMIC_DROPDOWN_FIELDS,
+    # SUB_CATEGORY_DYNAMIC_TEXTBOX_FIELDS,
     SUB_CATEGORY_SECONDARY_EMAIL_ID
 )
 
@@ -509,8 +509,8 @@ def _row_to_acco_maintenance_type_entity(row: dict[str, Any]) -> AccommodationMa
 def _row_to_subcategory_entity(row: dict[str, Any]) -> SubCategory:
     """Convert a Google Sheets row into a Sub Category entity."""
 
-    dynamic_dropdown_fields = [ item.strip() for item in str(row.get(SUB_CATEGORY_DYNAMIC_DROPDOWN_FIELDS, "")).split(",") if item.strip() ]
-    dynamic_textbox_fields = [ item.strip() for item in str(row.get(SUB_CATEGORY_DYNAMIC_TEXTBOX_FIELDS, "")).split(",") if item.strip() ]
+    # dynamic_dropdown_fields = [ item.strip() for item in str(row.get(SUB_CATEGORY_DYNAMIC_DROPDOWN_FIELDS, "")).split(",") if item.strip() ]
+    # dynamic_textbox_fields = [ item.strip() for item in str(row.get(SUB_CATEGORY_DYNAMIC_TEXTBOX_FIELDS, "")).split(",") if item.strip() ]
 
     return SubCategory(
         subcategory_id = str(row.get(SUB_CATEGORY_SUB_CATEGORY_ID, 0)).strip(),
@@ -527,8 +527,8 @@ def _row_to_subcategory_entity(row: dict[str, Any]) -> SubCategory:
         show_coordinator_email_input = str(row.get(SUB_CATEGORY_SHOW_COORDINATOR_EMAIL, "")).strip().lower() == "true",
         # display_order = int(str(row.get(SUB_CATEGORY_DISPLAY_ORDER, 0)).strip() or 0),
         duration_in_days = int(str(row.get(SUB_CATEGORY_DURATION_IN_DAYS, 0)).strip() or 0),
-        dynamic_dropdown_fields = dynamic_dropdown_fields,
-        dynamic_textbox_fields = dynamic_textbox_fields,
+        # dynamic_dropdown_fields = dynamic_dropdown_fields,
+        # dynamic_textbox_fields = dynamic_textbox_fields,
         secondary_email = str(row.get(SUB_CATEGORY_SECONDARY_EMAIL_ID, "").strip())
     )   
 
