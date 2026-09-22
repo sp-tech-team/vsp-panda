@@ -931,7 +931,12 @@ def show_custom_date_fields(subcategory: SubCategory) -> None:
                                       max_value=max_date_value,
                                       min_value=date.today(),)
 
-            to_date_value = from_date + timedelta(days = subcategory.duration_in_days - 1 if subcategory.duration_in_days - 1 > 0 else 1)
+            to_date_value = None
+
+        if from_date is not None:
+            duration = subcategory.duration_in_days or 1
+            days_to_add = max(duration - 1, 1)
+            to_date_value = from_date + timedelta(days=days_to_add)
 
     with (col1 if not subcategory.show_from_date_input else col2): # both columns should be used only when both date fields need to be shown
         if subcategory.show_to_date_input:
