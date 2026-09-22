@@ -588,6 +588,37 @@ def show_accomodation_fields() -> None:
     col1, col2 = st.columns(2)
     with col1:
 
+        # Stay Area
+        stay_area_na = StayArea(
+            stay_area_id = "N/A",
+            stay_area_name = "N/A",
+            is_active = True
+        )
+            
+        stay_areas = [ stay_area_na ]
+        stay_areas.extend(stay_area_repo.get_active_stay_areas())
+            
+        stay_areas_options = {stay_area.stay_area_name: stay_area for stay_area in stay_areas}
+            
+        required_label("Stay Area")
+        input_stay_area_name = st.selectbox(
+            ".", # ** No longer relevant
+            list(stay_areas_options.keys()),
+            index=None,
+            key="input_stay_area_name",
+            label_visibility="collapsed",
+            placeholder="Select Stay Area",
+        )
+        st.caption("Please select 'N/A' if stay area is not applicable.")
+            
+        input_stay_area = None
+        if (input_stay_area_name is not None) and (input_stay_area_name in stay_areas_options):
+            input_stay_area = stay_areas_options[input_stay_area_name]
+            st.session_state["input_stay_area"] = input_stay_area
+        else:
+            st.session_state.pop("input_stay_area", None)
+            st.session_state.pop("input_stay_area_name", None)
+
         if(input_subcategory_id == setting_repo.get_by_key("ACCO_MAINTENANCE_SUBCAT_ID_LTV").value or input_subcategory_id == setting_repo.get_by_key("ACCO_MAINTENANCE_SUBCAT_ID_STV").value or input_subcategory_id == setting_repo.get_by_key("ACCO_MAINTENANCE_SUBCAT_ID_AV").value):
             # Accommodation Maintenance Type
             acco_maintenance_type_na = AccommodationMaintenanceType(
@@ -624,36 +655,7 @@ def show_accomodation_fields() -> None:
             st.session_state.pop("input_acco_maintenance_type_name", None)
             st.session_state.pop("is_acco_maintenance_type_req", None)
 
-        # Floor Number
-        floor_num_na = FloorNum(
-                floor_id = "N/A",
-                floor_num = "N/A",
-                is_active = True
-        )
-
-        floor_nums = [ floor_num_na ]
-        floor_nums.extend(floor_num_repo.get_active_floor_nums())
-
-        floor_nums_options = {floor_num.floor_num: floor_num for floor_num in floor_nums}
-
-        required_label("Floor Number")
-        input_floor_num_name = st.selectbox(
-                ".", # ** No longer relevant
-                list(floor_nums_options.keys()),
-                index=None,
-                key="input_floor_num_name",
-                label_visibility="collapsed",
-                placeholder="Select Floor Number",
-        )
-        st.caption("Please select 'N/A' if floor number is not applicable.")
-
-        if (input_floor_num_name is not None) and (input_floor_num_name in floor_nums_options):
-                input_floor_num = floor_nums_options[input_floor_num_name]
-                st.session_state["input_floor_num"] = input_floor_num
-        else:
-                st.session_state.pop("input_floor_num", None)
-                st.session_state.pop("input_floor_num_name", None)
-
+        
         #Other Details
         required_label("Select Other Details")
         acco_other_details_ddl = st.selectbox(".",
@@ -692,41 +694,40 @@ def show_accomodation_fields() -> None:
             st.session_state["input_issue_date"] = issue_date_str
         else:    
             st.session_state.pop("input_issue_date", None)        
-         
-        
+
+     
     with col2:
+
+        # Floor Number
+        floor_num_na = FloorNum(
+                floor_id = "N/A",
+                floor_num = "N/A",
+                is_active = True
+            )
         
-        # Stay Area
-        stay_area_na = StayArea(
-            stay_area_id = "N/A",
-            stay_area_name = "N/A",
-            is_active = True
-        )
-
-        stay_areas = [ stay_area_na ]
-        stay_areas.extend(stay_area_repo.get_active_stay_areas())
-
-        stay_areas_options = {stay_area.stay_area_name: stay_area for stay_area in stay_areas}
-
-        required_label("Stay Area")
-        input_stay_area_name = st.selectbox(
+        floor_nums = [ floor_num_na ]
+        floor_nums.extend(floor_num_repo.get_active_floor_nums())
+        
+        floor_nums_options = {floor_num.floor_num: floor_num for floor_num in floor_nums}
+        
+        required_label("Floor Number")
+        input_floor_num_name = st.selectbox(
             ".", # ** No longer relevant
-            list(stay_areas_options.keys()),
+            list(floor_nums_options.keys()),
             index=None,
-            key="input_stay_area_name",
+            key="input_floor_num_name",
             label_visibility="collapsed",
-            placeholder="Select Stay Area",
+            placeholder="Select Floor Number",
         )
-        st.caption("Please select 'N/A' if stay area is not applicable.")
-
-        input_stay_area = None
-        if (input_stay_area_name is not None) and (input_stay_area_name in stay_areas_options):
-            input_stay_area = stay_areas_options[input_stay_area_name]
-            st.session_state["input_stay_area"] = input_stay_area
+        st.caption("Please select 'N/A' if floor number is not applicable.")
+        
+        if (input_floor_num_name is not None) and (input_floor_num_name in floor_nums_options):
+                input_floor_num = floor_nums_options[input_floor_num_name]
+                st.session_state["input_floor_num"] = input_floor_num
         else:
-            st.session_state.pop("input_stay_area", None)
-            st.session_state.pop("input_stay_area_name", None)
-
+                st.session_state.pop("input_floor_num", None)
+                st.session_state.pop("input_floor_num_name", None)
+        
         # Rooms
         
         room_na = Room(
