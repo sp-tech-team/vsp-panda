@@ -1612,6 +1612,7 @@ def clear_form_state():
         "input_room",
         "input_bunk",
         "input_toilet",
+        "input_toilet_desc",
         "input_shower_desc",
         "input_drying_lines_desc",
         "input_corridor_desc",
