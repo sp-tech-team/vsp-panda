@@ -555,10 +555,12 @@ def show_acco_other_details_textbox():
     textbox_key = f"input_{acco_other_details_type.lower().replace(' ', '_')}_desc"
     textbox_req = f"is_{acco_other_details_type.lower().replace(' ', '_')}_req"
 
+    required_label(f"{acco_other_details_type} Details :")
     description = st.text_input(
-        f"{acco_other_details_type} Details",
+        ".",
         placeholder=f"Provide details about the {acco_other_details_type.lower().replace(' ', '_')} (e.g. number, etc.)",
-        key=textbox_key
+        key=textbox_key,
+        label_visibility="collapsed"
     )
     st.session_state.pop("input_shower_desc", None)
     st.session_state.pop("input_toilet_desc", None)
