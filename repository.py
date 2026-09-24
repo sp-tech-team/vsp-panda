@@ -654,7 +654,6 @@ def _fetch_all_sheet_data_cached() -> dict[str, list[list[str]]]:
         BUNK_NUM_WORKSHEET,
         CATEGORIES_WORKSHEET,
         FLOOR_NUM_WORKSHEET,
-        PARAMETERS_WORKSHEET,
         PROGRAM_DATES_WORKSHEET,
         ROOM_WORKSHEET,
         SETTINGS_WORKSHEET,
