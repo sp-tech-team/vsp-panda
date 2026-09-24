@@ -75,7 +75,7 @@ class UserDetailsPage:
 
         elif (testdata['SubCategory'] is not None):
             self.select_subcategory(testdata['SubCategory'])
-            time.sleep(30)
+            time.sleep(15)
         else:
             pytest.skip(
                 "Sub category is not available. Skipping this scenario.")
@@ -181,7 +181,7 @@ class UserDetailsPage:
         self.submit_req.click()
 
     def get_reqid(self, scenario_name):
-        time.sleep(30)
+        time.sleep(15)
         try:
             if scenario_name == "test_ltv_usrdtl_neg_silence_3day":
                 if not self.silenceerrormsg.is_visible():
