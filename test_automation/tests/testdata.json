@@ -49,10 +49,10 @@
     },
     "test_user_search_diff_country_code_phn": {
         "EmailId": null,
-        "CountryCode": "us",
-        "PhoneNumber": "9987654321",
+        "CountryCode": "np",
+        "PhoneNumber": "9743383265",
         "Name": null,
-        "VolunteerCategory": "Long Term Department Support",
+        "VolunteerCategory": "Ashram Volunteer",
         "DepartureDate": null,
         "Category": null,
         "SubCategory": null,
