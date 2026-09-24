@@ -63,7 +63,7 @@ st.markdown(
 )
 
 # bathroom_repo = BathroomRepository()
-bunk_num_repo = BunkNumRepository()
+# bunk_num_repo = BunkNumRepository()
 category_repo = CategoryRepository()
 floor_num_repo = FloorNumRepository()
 setting_repo = SettingRepository()
