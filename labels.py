@@ -204,6 +204,7 @@ REQUESTS_ACCO_SHOWER_NUM = "Acco Shower Num"
 REQUESTS_ACCO_DRYLINES_DETAILS = "Acco Drylines Details"
 REQUESTS_ACCO_CORRIDOR_DETAILS = "Acco Corridor Details"
 REQUESTS_ACCO_OTHER_DETAILS = "Acco Other Details"
+REQUESTS_UPLOAD_FILE_LINK = "Upload File link"
 
 # Settings
 

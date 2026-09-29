@@ -173,6 +173,7 @@ class Request:
     acco_drylines_details: str | None = None
     acco_corridor_details: str | None = None
     acco_other_details: str | None = None
+    upload_file_link: str | None = None
 
     def __str__(self) -> str:
         return f"{self.request_id} - {self.request_type} | {self.name} <{self.email_id}> <{self.phone_number}>"
