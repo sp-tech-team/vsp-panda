@@ -13,6 +13,12 @@ from datetime import date
 
 from entities import CountryCode, Request
 from zoneinfo import ZoneInfo
+import io
+
+import streamlit as st
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaIoBaseUpload
 
 IST = ZoneInfo("Asia/Kolkata")
 
@@ -405,3 +411,111 @@ def get_client_ip() -> str:
         return response.json()["ip"]
     except requests.RequestException:
         return "unknown"
+
+import io
+
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaIoBaseUpload
+
+import streamlit as st
+
+
+def get_drive_service():
+    credentials = service_account.Credentials.from_service_account_info(
+        st.secrets["gcp_service_account"],
+        scopes=["https://www.googleapis.com/auth/drive"],
+    )
+
+    return build(
+        "drive",
+        "v3",
+        credentials=credentials,
+    )
+
+
+def create_drive_folder(folder_name, parent_folder_id):
+    """Create a folder inside the configured parent Drive folder."""
+
+    drive_service = get_drive_service()
+
+    file_metadata = {
+        "name": folder_name,
+        "mimeType": "application/vnd.google-apps.folder",
+        "parents": [parent_folder_id],
+    }
+
+    folder = (
+        drive_service.files()
+        .create(
+            body=file_metadata,
+            fields="id,name,webViewLink",
+            supportsAllDrives=True,
+        )
+        .execute()
+    )
+
+    return folder
+
+
+def upload_file_to_drive(uploaded_file, folder_id):
+    """Upload one Streamlit UploadedFile to the specified Drive folder."""
+
+    drive_service = get_drive_service()
+
+    file_metadata = {
+        "name": uploaded_file.name,
+        "parents": [folder_id],
+    }
+
+    media = MediaIoBaseUpload(
+        io.BytesIO(uploaded_file.getvalue()),
+        mimetype=uploaded_file.type or "application/octet-stream",
+        resumable=True,
+    )
+
+    uploaded_file_info = (
+        drive_service.files()
+        .create(
+            body=file_metadata,
+            media_body=media,
+            fields="id,name,mimeType,webViewLink",
+            supportsAllDrives=True,
+        )
+        .execute()
+    )
+
+    return uploaded_file_info
+
+
+def upload_files_to_request_folder(
+    uploaded_files,
+    request_id,
+    parent_folder_id,
+):
+    """Create a Request ID folder and upload all files into it."""
+
+    if not uploaded_files:
+        return None
+
+    try:
+        # Create folder for this Request ID
+        request_folder = create_drive_folder(
+            folder_name=request_id,
+            parent_folder_id=parent_folder_id,
+        )
+
+        # Upload all selected files into the Request ID folder
+        for uploaded_file in uploaded_files:
+            upload_file_to_drive(
+                uploaded_file=uploaded_file,
+                folder_id=request_folder["id"],
+            )
+
+        # Return only the folder's clickable URL
+        return request_folder["webViewLink"]
+
+    except Exception as e:
+        raise RuntimeError(
+            f"Failed to upload files for request {request_id}"
+        ) from e
