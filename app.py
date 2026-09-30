@@ -14,6 +14,12 @@ from entities import  FloorNum, Request, Room, StayArea, SubCategory,Accommodati
 from repository import  BunkNumRepository, CategoryRepository, FloorNumRepository, ParameterRepository, RoomRepository, RequestRepository, SettingRepository, ShowerRepository, StayAreaRepository, SubCategoryRepository, VolunteerCategoryRepository, VolunteerRepository, AccoMaintenanceTypeRepository
 from zoneinfo import ZoneInfo
 from service import EmailService
+import io
+
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaIoBaseUpload
+from utils import upload_files_to_request_folder
 
 IST = ZoneInfo("Asia/Kolkata")
 
@@ -417,7 +423,7 @@ def show_subcategory_selection(col) -> None:
             return
 
         filtered_subcategories = []
-        if input_category.has_programs:
+        if input_category != None and input_category.has_programs:
             filtered_subcategories = subcategory_repo.get_by_category_and_gender(
                                                 input_category.category_id, 
                                                 volunteer.gender,
@@ -566,6 +572,7 @@ def show_acco_other_details_textbox():
     st.session_state.pop("input_toilet_desc", None)
     st.session_state.pop("input_drying_lines_desc", None)
     st.session_state.pop("input_corridor_desc", None)
+    st.session_state.pop("request_files", [])
     st.session_state.pop("input_other_desc", None)
     st.session_state["is_shower_req"] = False
     st.session_state["is_toilet_req"] = False
@@ -1041,6 +1048,19 @@ def show_description_box() -> None:
 
     st.session_state.pop("description", None)
     st.session_state.pop("input_description", None)
+
+def show_upload_photo() -> None:
+    """Render the file upload option."""
+
+    if "file_uploader_key" not in st.session_state:
+        st.session_state.file_uploader_key = 0
+
+    st.file_uploader(
+        "Upload Photo / Document",
+        type=["jpg", "jpeg", "png", "pdf"],
+        accept_multiple_files=True,
+        key=f"request_files_{st.session_state.file_uploader_key}",
+    )
 
 def show_submit_button():
     """Render the submit button"""
@@ -1520,11 +1540,55 @@ def save_record():
         description += f"\n#Health"
 
     timestamp = datetime.now(IST).strftime("%Y-%m-%d %H:%M:%S")
-    print("input_acco_maintenance_type********",st.session_state.get("input_acco_maintenance_type", None))
+    new_request_id = utils.generate_request_id(vol_cat.request_label, volunteer.visit_id)
+    uploaded_files = st.session_state.get(f"request_files_{st.session_state.file_uploader_key}",[]
+    )
+
+    if uploaded_files:
+        try:
+            drive_folder_id = st.secrets["drive"]["photo_folder_id"]
+
+            drive_folder_link = upload_files_to_request_folder(
+                uploaded_files=uploaded_files,
+                request_id=new_request_id,
+                parent_folder_id=drive_folder_id,
+            )
+            print("drive_folder_link***************",drive_folder_link)
+        except Exception as e:
+            # Log the error
+            st.error(
+                        f"Failed to upload files to Google Drive. Please try again later. "
+                    )
+            volunteer = st.session_state.get("volunteer")
+            logger.exception(
+                            "Google Drive file upload failed",
+                            extra={
+                                    "ip_address": utils.get_client_ip(),
+                                    "vol_email_id": volunteer.email_id if volunteer else "",
+                                    "vol_phone_num": volunteer.phone_number if volunteer else "",
+                                }
+                            )
+            try:
+                # Send exception email
+                EmailService().send_exception_email(e, "Google Drive upload failed")
+            except Exception:
+                logger.exception(
+                                "Failed to send exception notification email",
+                                extra={
+                                        "ip_address": utils.get_client_ip(),
+                                        "vol_email_id": volunteer.email_id if volunteer else "",
+                                        "vol_phone_num": volunteer.phone_number if volunteer else "",
+                                        }
+                                    )
+                    
+            return None
+    else:
+        drive_folder_link = ""
+
     #existing_request_ids = request_repo.get_existing_ids()
     req = Request(
         # request_id = utils.generate_request_id(vol_cat.request_label, existing_request_ids), old code for req id generation
-        request_id = utils.generate_request_id(vol_cat.request_label, volunteer.visit_id),
+        request_id = new_request_id,
         person_id = volunteer.person_id,
         visit_id = volunteer.visit_id,
         name = volunteer.name,
@@ -1558,6 +1622,7 @@ def save_record():
         acco_drylines_details= st.session_state.get("input_drying_lines_desc", None),
         acco_corridor_details= st.session_state.get("input_corridor_desc", None),
         acco_other_details= st.session_state.get("input_other", None),
+        upload_file_link = drive_folder_link,
 
     )
 
@@ -1619,6 +1684,8 @@ def clear_form_state():
         "input_other_desc"
     ]:
         st.session_state.pop(key, None)
+
+    st.session_state.file_uploader_key += 1
 
     # # Dynamic dropdowns
     # dynamic_dropdowns = st.session_state.pop("dynamic_dropdowns", None)
@@ -1833,7 +1900,7 @@ if __name__ == "__main__":
                 if input_subcategory != None and input_subcategory != '':
                     # render_dynamic_dropdowns(input_subcategory)
                     # render_dynamic_textbox(input_subcategory)
-                    if input_category.has_programs:
+                    if input_category != None and input_category.has_programs:
                         if (not input_subcategory.show_from_date_input and 
                             not input_subcategory.show_to_date_input):
                             show_program_dates_selection()
@@ -1855,6 +1922,7 @@ if __name__ == "__main__":
                 #         show_coordinator_email_input()
 
                 show_description_box()
+                show_upload_photo()
                 req = show_submit_button()
 
                 if req:

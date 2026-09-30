@@ -166,7 +166,8 @@ REQUESTS_HEADER = (
     REQUESTS_ACCO_SHOWER_NUM,
     REQUESTS_ACCO_DRYLINES_DETAILS,
     REQUESTS_ACCO_CORRIDOR_DETAILS,
-    REQUESTS_ACCO_OTHER_DETAILS
+    REQUESTS_ACCO_OTHER_DETAILS,
+    REQUESTS_UPLOAD_FILE_LINK
 
 )
 
@@ -1483,6 +1484,7 @@ class RequestRepository:
             self._format_value(request.acco_drylines_details),
             self._format_value(request.acco_corridor_details),
             self._format_value(request.acco_other_details),
+            self._format_value(request.upload_file_link), 
         ]
 
     def write_to_sheet(self, request: Request) -> None:
