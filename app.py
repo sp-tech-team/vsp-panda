@@ -1848,7 +1848,7 @@ if __name__ == "__main__":
                 if input_subcategory != None and input_subcategory != '':
                     # render_dynamic_dropdowns(input_subcategory)
                     # render_dynamic_textbox(input_subcategory)
-                    if  input_category.has_programs:
+                    if  input_category != None and input_category.has_programs:
                         if (not input_subcategory.show_from_date_input and 
                             not input_subcategory.show_to_date_input):
                             show_program_dates_selection()
