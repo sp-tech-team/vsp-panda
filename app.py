@@ -1044,7 +1044,7 @@ def show_upload_photo() -> None:
         st.session_state.file_uploader_key = 0
 
     st.file_uploader(
-        "Upload Photo / Document",
+        "Upload Supporting Documents",
         type=["jpg", "jpeg", "png", "pdf"],
         accept_multiple_files=True,
         key=f"request_files_{st.session_state.file_uploader_key}",
@@ -1838,11 +1838,11 @@ if __name__ == "__main__":
                 if help_text:
                     show_help_text(help_text)
 
-                    accomodation_id = setting_repo.get_by_key("ACCOMODATION_CATEGORY_ID")
-                    if input_category.category_id == accomodation_id.value:
-                        show_accomodation_fields()
-                    else:
-                        reset_accomodation_req_flags()
+                accomodation_id = setting_repo.get_by_key("ACCOMODATION_CATEGORY_ID")
+                if input_category != None and input_category.category_id == accomodation_id.value:
+                    show_accomodation_fields()
+                else:
+                    reset_accomodation_req_flags()
 
                 input_subcategory = st.session_state.get("input_subcategory")
                 if input_subcategory != None and input_subcategory != '':
