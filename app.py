@@ -436,8 +436,6 @@ def show_subcategory_selection(col) -> None:
         subcategory_options = {subcategory.name: subcategory for subcategory in filtered_subcategories}
         subcategory_names = list(subcategory_options.keys())
 
-        subcategory_names = list(subcategory_options.keys())
-
         if not subcategory_names:
             # No subcategories
             options = ["No applicable values to select"]
@@ -462,6 +460,7 @@ def show_subcategory_selection(col) -> None:
             disabled = False
             placeholder = "Select Sub Category"
 
+    with col:
         required_label("📌 Sub Category")
         input_subcategory_name = st.selectbox(
             ".",
@@ -473,27 +472,16 @@ def show_subcategory_selection(col) -> None:
             placeholder=placeholder
         )
 
-        
-        # input_subcategory_name = st.selectbox(
-        #     "", # ** No longer relevant
-        #     subcategory_names,
-        #     index = 0 if len(list(subcategory_options.keys())) == 1 else None, # Preselect if only 1 option is there
-        #     key = "input_subcategory_name",
-        #     label_visibility = "collapsed",
-        #     disabled=not bool(subcategory_options),
-        #     placeholder = "Select Sub Category"
-        # )
-
         if (input_subcategory_name is not None) and (input_subcategory_name in subcategory_options):
             input_subcategory = subcategory_options[input_subcategory_name]
             st.session_state["input_subcategory"] = input_subcategory
 
-            show_help_text(input_subcategory.help_text)
-
-            return
+            return input_subcategory.help_text
 
         st.session_state.pop("input_subcategory", None)
         st.session_state.pop("input_subcategory_name", None)
+
+    return None
 
 # def render_dynamic_dropdowns(sub_cat: SubCategory) -> None:
 #     dynamic_dropdowns = []
@@ -1543,7 +1531,7 @@ def save_record():
     new_request_id = utils.generate_request_id(vol_cat.request_label, volunteer.visit_id)
     uploaded_files = st.session_state.get(f"request_files_{st.session_state.file_uploader_key}",[]
     )
-
+    #raise Exception("Something went wrong")
     if uploaded_files:
         try:
             drive_folder_id = st.secrets["drive"]["photo_folder_id"]
@@ -1812,50 +1800,6 @@ def show_success_popup(request_id,coordinator_email_required):
         st.session_state["reset_form_requested"] = True
         st.rerun()
 
-# def send_mail_requester(request: Request) -> None:
-#     """Send the request notification to the requester."""
-
-#     email_service._send_template_email(
-#         request=request,
-#         # recipient=request.email_id,
-#         recipient="yogesh.jaykar-ext@gmail.com",
-#         template_name=email_service.TEMPLATE_REQUESTER,
-#     )
-
-# def send_mail_team(request: Request) -> None:
-#     """Send the request notification to the assigned team."""
-
-#     team = team_repo.get_by_id(request.assigned_department)
-
-#     email_service._send_template_email(
-#         request=request,
-#         # recipient=team.contact_email,
-#         recipient="yogesh.jaykar-ext@gmail.com",
-#         template_name=email_service.TEMPLATE_TEAM,
-#     )
-
-# def send_mail_secondary_email(request: Request, secondary_email: str) -> None:
-#     """Send the request notification to a secondary email address."""
-
-#     email_service._send_template_email(
-#         request=request,
-#         # recipient=secondary_email,
-#         recipient="yogesh.jaykar-ext@gmail.com",
-#         template_name=email_service.TEMPLATE_SECONDARY_EMAIL,
-#     )
-
-# def send_mail_coordinator(request: Request) -> None:
-#     """Send the request notification to the coordinator."""
-
-#     coordinator_email = request.coordinator_email_id
-
-#     email_service._send_template_email(
-#         request=request,
-#         # recipient=coordinator_email,
-#         recipient="yogesh.jaykar-ext@gmail.com",
-#         template_name=email_service.TEMPLATE_COORDINATOR,
-#     )
-
 if __name__ == "__main__":
     try:
         st.title("🔹 Raise a Request")
@@ -1886,9 +1830,13 @@ if __name__ == "__main__":
                 col1, col2 = st.columns(2)
 
                 show_category_selection(col1)
+                help_text = None
                 input_category = st.session_state.get("input_category")
                 if input_category != None:
-                    show_subcategory_selection(col2)
+                    help_text  = show_subcategory_selection(col2)
+                # This is outside col1/col2, so it spans the full width
+                if help_text:
+                    show_help_text(help_text)
 
                     accomodation_id = setting_repo.get_by_key("ACCOMODATION_CATEGORY_ID")
                     if input_category.category_id == accomodation_id.value:
@@ -1900,7 +1848,7 @@ if __name__ == "__main__":
                 if input_subcategory != None and input_subcategory != '':
                     # render_dynamic_dropdowns(input_subcategory)
                     # render_dynamic_textbox(input_subcategory)
-                    if input_category != None and input_category.has_programs:
+                    if  input_category.has_programs:
                         if (not input_subcategory.show_from_date_input and 
                             not input_subcategory.show_to_date_input):
                             show_program_dates_selection()

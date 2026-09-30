@@ -13,6 +13,7 @@ from typing import Any
 import streamlit as st
 
 from entities import Request
+import subprocess
 
 
 class EmailService:
@@ -264,6 +265,10 @@ class EmailService:
         exception_type = type(exception).__name__
         exception_message = str(exception)
         traceback_text = traceback.format_exc()
+        branch_name = subprocess.check_output(
+            ["git", "branch", "--show-current"],
+            text=True
+        ).strip()
 
         html_body = f"""
         <html>
@@ -281,6 +286,11 @@ class EmailService:
             <p>
                 <strong>Exception Message:</strong>
                 {exception_message}
+            </p>
+
+            <p>
+                <strong>Branch Name:</strong>
+                {branch_name}
             </p>
 
             <h4>Traceback</h4>
