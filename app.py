@@ -1042,12 +1042,24 @@ def show_upload_photo() -> None:
 
     if "file_uploader_key" not in st.session_state:
         st.session_state.file_uploader_key = 0
-
+    st.markdown("**Upload supporting documents**")
+    st.caption("JPG, PNG or PDF • Maximum total size: 20 MB")
+    st.markdown(
+    """
+    <style>
+    [data-testid="stFileUploaderDropzoneInstructions"] {
+        display: none;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
     st.file_uploader(
-        "Upload Supporting Documents",
+        " ",
         type=["jpg", "jpeg", "png", "pdf"],
         accept_multiple_files=True,
         key=f"request_files_{st.session_state.file_uploader_key}",
+        label_visibility="collapsed",
     )
 
 def show_submit_button():
@@ -1323,13 +1335,15 @@ def show_submit_button():
         document_lock = threading.Lock()
         with document_lock:
             req = save_record()
-
             # time.sleep(10) # without delay appscript gets confused about whether request, or log table is modified
 
         # Log the request generation success
-
+        if req != None :
+            request_id = req.request_id
+        else :
+            request_id = "Not generated as upload size beyond limit"
         logger.info(
-                    f"Request raised. Request ID: {req.request_id}",
+                    f"Request raised. Request ID: {request_id}",
                     extra={
                             "ip_address": utils.get_client_ip(),
                             "vol_email_id": volunteer.email_id if volunteer else "",
@@ -1529,8 +1543,18 @@ def save_record():
 
     timestamp = datetime.now(IST).strftime("%Y-%m-%d %H:%M:%S")
     new_request_id = utils.generate_request_id(vol_cat.request_label, volunteer.visit_id)
-    uploaded_files = st.session_state.get(f"request_files_{st.session_state.file_uploader_key}",[]
-    )
+    uploaded_files = st.session_state.get(f"request_files_{st.session_state.file_uploader_key}",[] )
+
+    # Validate files first
+    MAX_TOTAL_SIZE = 20 * 1024 * 1024
+    total_size = sum(file.size for file in uploaded_files)
+
+    if total_size > MAX_TOTAL_SIZE:
+        st.error(
+            f"Total file size must not exceed 20 MB. "
+            f"You selected {total_size / (1024 * 1024):.2f} MB."
+        )
+        return 
     #raise Exception("Something went wrong")
     if uploaded_files:
         try:
@@ -1541,7 +1565,6 @@ def save_record():
                 request_id=new_request_id,
                 parent_folder_id=drive_folder_id,
             )
-            print("drive_folder_link***************",drive_folder_link)
         except Exception as e:
             # Log the error
             st.error(
@@ -1613,7 +1636,13 @@ def save_record():
         upload_file_link = drive_folder_link,
 
     )
-
+    logger.info(f"Request Object: {req}",
+                    extra={
+                            "ip_address": utils.get_client_ip(),
+                            "vol_email_id": volunteer.email_id if volunteer else "",
+                            "vol_phone_num": volunteer.phone_number if volunteer else "",
+                        }
+                    )
     request_repo.write_to_sheet(req)
 
     return req
