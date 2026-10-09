@@ -15,7 +15,9 @@ class PostgreSQLHandler(logging.Handler):
             vol_emailid = getattr(record, "vol_email_id", None)
             vol_phone_num = getattr(record, "vol_phone_num", None)
             ip_address = getattr(record, "ip_address", None)
-
+            func_name = getattr(record, "functionName", None)
+            stack_trace = getattr(record, "stack_trace", None)
+            line_number = getattr(record, "line_number", None)
 
             cursor.execute(
                 """
@@ -29,20 +31,22 @@ class PostgreSQLHandler(logging.Handler):
                     line_number,
                     vol_email_id,
                     vol_phone_num,
-                    ip_address
+                    ip_address,
+                    stack_trace
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
                     record.levelname,
                     record.name,
                     record.getMessage(),
                     record.module,
-                    record.funcName,
-                    record.lineno,
+                    func_name,
+                    line_number,
                     vol_emailid,
                     vol_phone_num,
-                    ip_address
+                    ip_address,
+                    stack_trace
                 )
             )
 
