@@ -48,54 +48,42 @@ def setup_logger():
     logger.addHandler(console_handler)
     logger.addHandler(db_handler)
 
+def handle_exception(e: Exception, context: str = "Application"):
+    """Log full technical details but show a safe message to the user."""
 
-setup_logger()
+    # Log the error
+    volunteer = st.session_state.get("volunteer")
+    logger.exception(
+                    "Failed while processing request",
+                    extra={
+                            "ip_address": utils.get_client_ip(),
+                            "vol_email_id": volunteer.email_id if volunteer else "",
+                            "vol_phone_num": volunteer.phone_number if volunteer else "",
+                            "functionName":context,
+                            "stack_trace": str(e),
+                            "line_number": e.__traceback__.tb_lineno if e.__traceback__ else None
+                        }
+                    )
+    try:
+        # Send exception email
+        EmailService().send_exception_email(e, "Failed while processing request")
+    except Exception:
+        logger.exception(
+                        "Failed to send exception notification email",
+                        extra={
+                                "ip_address": utils.get_client_ip(),
+                                "vol_email_id": volunteer.email_id if volunteer else "",
+                                "vol_phone_num": volunteer.phone_number if volunteer else "",
+                                 "functionName":context,
+                                "stack_trace": str(e),
+                            }
+                        )
 
-st.set_page_config(
-    page_title="VSP Panda",
-    layout="wide"
-)
+    st.error(
+        "Something went wrong while processing your request. "
+        "Please refresh the page and try again."
+    )
 
-st.markdown(
-    """
-    <style>
-    /* Hide the entire Streamlit top-right toolbar */
-    div[data-testid="stToolbar"] {
-        display: none !important;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
-# bathroom_repo = BathroomRepository()
-bunk_num_repo = BunkNumRepository()
-category_repo = CategoryRepository()
-floor_num_repo = FloorNumRepository()
-setting_repo = SettingRepository()
-parameter_repo = ParameterRepository()
-room_repo = RoomRepository()
-setting_repo = SettingRepository()
-shower_repo = ShowerRepository()
-stay_area_repo = StayAreaRepository ()
-acco_maintenance_type_repo = AccoMaintenanceTypeRepository()
-subcategory_repo = SubCategoryRepository()
-vol_cat_repo = VolunteerCategoryRepository()
-volunteer_repo = VolunteerRepository()
-StayExtensionCatIdFromTable = utils.get_setting("StayExtensionCatIdFromTable")
-
-
-if "volunteer_identified" in st.session_state and st.session_state["volunteer_identified"]:
-    st.session_state["state"] = "Form"
-
-    # These fields are requried for validating the form
-    # Initializing the states, actual values would be put while the fields are rendered
-    st.session_state["is_sub_cat_req"] = False
-    st.session_state["is_program_selection"] = False
-    st.session_state["is_program_date_req"] = False
-    st.session_state["is_coordinator_email_req"] = False
-elif "state" not in st.session_state or not st.session_state["state"]:
-    st.session_state["state"] = "Identification"
 
 def load_css() -> None:
     """Load application CSS."""
@@ -126,81 +114,58 @@ def load_js() -> None:
 def show_volunteer_email_identification() -> None:
     """Render the Volunteer identification flow."""
     # st.header("👤 Volunteer Identification")
+    try : 
+        required_label("📧 Email ID")
+        email = st.text_input(
+            ".",
+            placeholder="Enter your email ID",
+            label_visibility="collapsed",
+            key="email_id"
+        )
 
-    required_label("📧 Email ID")
-    email = st.text_input(
-        ".",
-        placeholder="Enter your email ID",
-        label_visibility="collapsed",
-        key="email_id"
-    )
+        if email:
+            if not email.strip():
+                st.error("Please enter your email ID.")
+                return
+            
+            volunteer, return_msg = volunteer_repo.get_latest_by_email(email)
+            
+            if volunteer is not None and not return_msg:
+                st.session_state["volunteer"] = volunteer
+                st.session_state["volunteer_identified"] = True
 
-    if email:
-        if not email.strip():
-            st.error("Please enter your email ID.")
-            return
-
-        volunteer, return_msg = volunteer_repo.get_latest_by_email(email)
-
-        if volunteer is not None and not return_msg:
-            st.session_state["volunteer"] = volunteer
-            st.session_state["volunteer_identified"] = True
-
-            if st.session_state.get("volunteer_identified"):
-                volunteer = st.session_state["volunteer"]
-                # Log the identification success
-                logger.info(
-                                    f"Identified user." + 
-                                    f"Visit ID: {volunteer.visit_id} | " + 
-                                    f"Person ID: {volunteer.person_id} | " + 
-                                    f"Volunteer ID: {volunteer.volunteer_id}",
-                                    extra={
+                if st.session_state.get("volunteer_identified"):
+                    volunteer = st.session_state["volunteer"]
+                    # Log the identification success
+                    logger.info(
+                                f"Identified user." + 
+                                f"Visit ID: {volunteer.visit_id} | " + 
+                                f"Person ID: {volunteer.person_id} | " + 
+                                f"Volunteer ID: {volunteer.volunteer_id}",
+                                extra={
                                         "ip_address": utils.get_client_ip(),
                                         "vol_email_id": volunteer.email_id if volunteer else "",
                                         "vol_phone_num": volunteer.phone_number if volunteer else "",
                                     }
                                 )
-                # log_repo = LogRepository()
 
-                # now: datetime = datetime.now()
-                # log: Log = Log(
-                #     log_id = f"L-{now.strftime("%y%m%d-%H%M%S")}",
-                #     ip_address = utils.get_client_ip(),
-                #     email_id = volunteer.email_id,
-                #     phone_number = volunteer.phone_number,
-                #     message = f"Identified user." + 
-                #                 f"Visit ID: {volunteer.visit_id} | " + 
-                #                 f"Person ID: {volunteer.person_id} | " + 
-                #                 f"Volunteer ID: {volunteer.volunteer_id}",
-                #     timestamp = now
-                # )
-                # log_repo.write_to_sheet(log)
+                    st.rerun()
 
-                st.rerun()
+            st.error("❌ Email ID does not exist in the database.")
 
-        st.error("❌ Email ID does not exist in the database.")
+            # Log the identification failure
 
-        # Log the identification failure
-
-        logger.info(
-                        f"Failed to identify user. Email: {email}. {return_msg}",
-                        extra={
-                                "ip_address": utils.get_client_ip(),
-                                "vol_email_id": email,
-                                "vol_phone_num": "",
-                                }
-                    )
-
-        # log_repo = LogRepository()
-
-        # now: datetime = datetime.now()
-        # log: Log = Log(
-        #     log_id = f"L-{now.strftime("%y%m%d-%H%M%S")}",
-        #     ip_address = utils.get_client_ip(),
-        #     message = f"Failed to identify user. Email: {email}. {return_msg}",
-        #     timestamp = now
-        # )
-        # log_repo.write_to_sheet(log)
+            logger.info(
+                            f"Failed to identify user. Email: {email}. {return_msg}",
+                            extra={
+                                    "ip_address": utils.get_client_ip(),
+                                    "vol_email_id": email,
+                                    "vol_phone_num": "",
+                                    }
+                        )
+    except Exception as e: 
+         handle_exception(e, "app.py - show_volunteer_email_identification()")
+    
         
 def show_forgot_email_button() -> None:
     """Render the 'Forgot Email' button."""
@@ -209,279 +174,267 @@ def show_forgot_email_button() -> None:
         st.session_state["forgot_email_clicked"] = True
 
 def show_volunteer_phone_identification() -> None:
+    
     """Render the phone identification flow."""
-    country_codes = utils.get_country_code_map()
-    default_country_code_index = next(
-                                        (
-                                            index
-                                            for index, cc in enumerate(country_codes)
-                                            if cc.region == "IN"
-                                        ),
-                                        None,
-                                    )
+    try :
+        country_codes = utils.get_country_code_map()
+        default_country_code_index = next(
+                                            (
+                                                index
+                                                for index, cc in enumerate(country_codes)
+                                                if cc.region == "IN"
+                                            ),
+                                            None,
+                                        )
+        
+        required_label("🌍 Select Country Code")
+        input_country = st.selectbox(".", country_codes, 
+                                        index=default_country_code_index, 
+                                        label_visibility="collapsed",
+                                        placeholder="Select country code",
+                                        key="country_code")
+        input_country_code = input_country.country_code
 
-    required_label("🌍 Select Country Code")
-    input_country = st.selectbox(".", country_codes, 
-                                    index=default_country_code_index, 
-                                    label_visibility="collapsed",
-                                    placeholder="Select country code",
-                                    key="country_code")
-    input_country_code = input_country.country_code
+        required_label("📞 Phone Number")
+        phone_number = st.text_input(
+            ".",
+            placeholder="Enter phone number without country code",
+            label_visibility="collapsed",
+            key="phone_number"
+        )
+       
+        if input_country_code and phone_number:
+            if not phone_number.strip():
+                st.error("Phone number is required.")
+                return
 
-    required_label("📞 Phone Number")
-    phone_number = st.text_input(
-        ".",
-        placeholder="Enter phone number without country code",
-        label_visibility="collapsed",
-        key="phone_number"
-    )
+            full_phone_number = f"+{input_country_code}{phone_number.strip()}"
 
-    if input_country_code and phone_number:
-        if not phone_number.strip():
-            st.error("Phone number is required.")
-            return
+            volunteer, return_msg = volunteer_repo.get_latest_by_phone(full_phone_number, input_country.region,input_country_code,phone_number.strip())
+            
+            if volunteer is None or return_msg:
+                st.error("❌ Phone number does not exist in the database.")
 
-        full_phone_number = f"+{input_country_code}{phone_number.strip()}"
+                warning = setting_repo.get_by_key("REACH_OUT_TO_ADD_CREDENTIALS_FORM_MSG")
+                st.warning(f"⚠️ {warning.value}")
 
-        volunteer, return_msg = volunteer_repo.get_latest_by_phone(full_phone_number, input_country.region,input_country_code,phone_number.strip())
+                # Log the identification failure
+                logger.error(
+                                f"Failed to identify user. Phone: {phone_number}. {return_msg}",
+                                extra={
+                                        "ip_address": utils.get_client_ip(),
+                                        "vol_email_id": "",
+                                        "vol_phone_num": phone_number,
+                                    }
+                            )
 
-        if volunteer is None or return_msg:
-            st.error("❌ Phone number does not exist in the database.")
+                if st.button("🔄 Retry"):
+                    st.session_state["forgot_email_clicked"] = False
+                    st.session_state["volunteer_identified"] = False
+                    st.session_state["volunteer"] = None
+                    st.rerun()
 
-            warning = setting_repo.get_by_key("REACH_OUT_TO_ADD_CREDENTIALS_FORM_MSG")
-            st.warning(f"⚠️ {warning.value}")
+                return
 
-            # Log the identification failure
-
-            logger.error(
-                            f"Failed to identify user. Phone: {phone_number}. {return_msg}",
+            st.session_state["volunteer"] = volunteer
+            st.session_state["volunteer_identified"] = True
+            
+            # Log the identification success
+            logger.info(
+                        f"Identified user." + 
+                        f"Visit ID: {volunteer.visit_id} | " + 
+                        f"Person ID: {volunteer.person_id} | " + 
+                        f"Volunteer ID: {volunteer.volunteer_id}",
                             extra={
                                     "ip_address": utils.get_client_ip(),
-                                    "vol_email_id": "",
-                                    "vol_phone_num": phone_number,
-                                  }
+                                    "vol_email_id": volunteer.email_id,
+                                    "vol_phone_num": volunteer.phone_number,
+                                }
                         )
 
-            # log_repo = LogRepository()
+            st.rerun()
 
-            # now: datetime = datetime.now()
-            # log: Log = Log(
-            #     log_id = f"L-{now.strftime("%y%m%d-%H%M%S")}",
-            #     ip_address = utils.get_client_ip(),
-            #     message = f"Failed to identify user. Phone: {phone_number}. {return_msg}",
-            #     timestamp = now
-            # )
-            # log_repo.write_to_sheet(log)
+        if st.session_state.get("volunteer_identified"):
+            volunteer = st.session_state["volunteer"]
 
-            if st.button("🔄 Retry"):
-                st.session_state["forgot_email_clicked"] = False
-                st.session_state["volunteer_identified"] = False
-                st.session_state["volunteer"] = None
-                st.rerun()
-
-            return
-
-        st.session_state["volunteer"] = volunteer
-        st.session_state["volunteer_identified"] = True
-
-        # Log the identification success
-
-        logger.info(
-                    f"Identified user." + 
-                    f"Visit ID: {volunteer.visit_id} | " + 
-                    f"Person ID: {volunteer.person_id} | " + 
-                    f"Volunteer ID: {volunteer.volunteer_id}",
-                        extra={
-                                "ip_address": utils.get_client_ip(),
-                                "vol_email_id": volunteer.email_id,
-                                "vol_phone_num": volunteer.phone_number,
-                              }
-                    )
-
-        # log_repo = LogRepository()
-
-        # now: datetime = datetime.now()
-        # log: Log = Log(
-        #     log_id = f"L-{now.strftime("%y%m%d-%H%M%S")}",
-        #     ip_address = utils.get_client_ip(),
-        #     email_id = volunteer.email_id,
-        #     phone_number = volunteer.phone_number,
-        #     message = f"Identified user." + 
-        #                 f"Visit ID: {volunteer.visit_id} | " + 
-        #                 f"Person ID: {volunteer.person_id} | " + 
-        #                 f"Volunteer ID: {volunteer.volunteer_id}",
-        #     timestamp = now
-        # )
-        # log_repo.write_to_sheet(log)
-
-        st.rerun()
-
-    if st.session_state.get("volunteer_identified"):
-        volunteer = st.session_state["volunteer"]
+    except Exception as e: 
+             handle_exception(e, "app.py - show_volunteer_phone_identification()")
 
 def show_volunteer_details() -> None:
     """Render the volunteer details."""
-    volunteer = st.session_state.get("volunteer")
-    if not volunteer:
-        st.error("Volunteer not identified.")
-        return
+    try:
+        volunteer = st.session_state.get("volunteer")
+        if not volunteer:
+            st.error("Volunteer not identified.")
+            return
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            st.write(f"**Name:** {volunteer.name}")
+            st.write(f"**Departure Date:** {volunteer.departure_date.strftime("%b %d, %Y")}")
 
-    col1, col2 = st.columns(2)
-    with col1:
-        st.write(f"**Name:** {volunteer.name}")
-        st.write(f"**Departure Date:** {volunteer.departure_date.strftime("%b %d, %Y")}")
-
-    with col2:
-        st.write(f"**Volunteer Category:** {volunteer.volunteer_category}") 
+        with col2:
+            st.write(f"**Volunteer Category:** {volunteer.volunteer_category}") 
+    except Exception as e: 
+                handle_exception(e, "app.py - show_volunteer_details()")
 
 def get_categories_with_subcategories(
     categories,
     volunteer,
     subcategory_repo
 ):
-    valid_categories = []
+    try:
+        valid_categories = []
 
-    for category in categories:
+        for category in categories:
 
-        if category.has_programs:
-            filtered_subcategories = (
-                subcategory_repo.get_by_category_and_gender(
-                    category.category_id,
-                    volunteer.gender,
-                    volunteer.volunteer_category
+            if category.has_programs:
+                filtered_subcategories = (
+                    subcategory_repo.get_by_category_and_gender(
+                        category.category_id,
+                        volunteer.gender,
+                        volunteer.volunteer_category
+                    )
                 )
-            )
-        else:
-            filtered_subcategories = (
-                subcategory_repo.get_by_category_id_for_vol_cat(
-                    category.category_id,
-                    volunteer.volunteer_category
+            else:
+                filtered_subcategories = (
+                    subcategory_repo.get_by_category_id_for_vol_cat(
+                        category.category_id,
+                        volunteer.volunteer_category
+                    )
                 )
-            )
 
-        # Keep category only if it has at least one sub-category
-        if filtered_subcategories:
-            valid_categories.append(category)
+            # Keep category only if it has at least one sub-category
+            if filtered_subcategories:
+                valid_categories.append(category)
 
-    return valid_categories
+        return valid_categories
+    except Exception as e: 
+            handle_exception(e, "app.py - get_categories_with_subcategories()")
 
 def show_category_selection(col) -> None:
     """Render the category selection flow."""
-    with col:
-        volunteer = st.session_state.get("volunteer")
-        if not volunteer:
-            st.error("Volunteer not identified.")
-            return
+    try:
+        with col:
+            volunteer = st.session_state.get("volunteer")
+            if not volunteer:
+                st.error("Volunteer not identified.")
+                return
 
-        categories = category_repo.get_active_categories()
-        filtered_categories = get_categories_with_subcategories(
-                            categories,
-                            volunteer,
-                            subcategory_repo
-                        )
-        category_options = {category.category: category for category in filtered_categories}
+            categories = category_repo.get_active_categories()
+            filtered_categories = get_categories_with_subcategories(
+                                categories,
+                                volunteer,
+                                subcategory_repo
+                            )
+            category_options = {category.category: category for category in filtered_categories}
 
-        # To debug what is there in the session state
-        # st.write("CATEGORY STATE:", {
-        #     k: v for k, v in st.session_state.items()
-        #     if "categor" in k.lower()
-        # })
+            # To debug what is there in the session state
+            # st.write("CATEGORY STATE:", {
+            #     k: v for k, v in st.session_state.items()
+            #     if "categor" in k.lower()
+            # })
+            
+            required_label("📌 I want to reach out to:")
+            input_category_name = st.selectbox(
+                ".", # ** No longer relevant
+                list(category_options.keys()),
+                index=None,
+                key="input_category_name",
+                label_visibility="collapsed",
+                placeholder="Select Category",
+            )
 
-        required_label("📌 I want to reach out to:")
-        input_category_name = st.selectbox(
-            ".", # ** No longer relevant
-            list(category_options.keys()),
-            index=None,
-            key="input_category_name",
-            label_visibility="collapsed",
-            placeholder="Select Category",
-        )
+            if (input_category_name is not None) and (input_category_name in category_options):
+                input_category = category_options[input_category_name]
+                st.session_state["input_category"] = input_category
+                return
 
-        if (input_category_name is not None) and (input_category_name in category_options):
-            input_category = category_options[input_category_name]
-            st.session_state["input_category"] = input_category
-            return
-
-        st.session_state.pop("input_category", None)
-        st.session_state.pop("input_category_name", None)
+            st.session_state.pop("input_category", None)
+            st.session_state.pop("input_category_name", None)
+    except Exception as e: 
+            handle_exception(e, "app.py - show_category_selection()")
 
 def show_subcategory_selection(col) -> None:
     """Render the subcategory selection flow."""
-    with col:
-        volunteer = st.session_state.get("volunteer")
-        if not volunteer:
-            st.error("Volunteer not identified.")
-            return
+    try:
+        with col:
+            volunteer = st.session_state.get("volunteer")
+            if not volunteer:
+                st.error("Volunteer not identified.")
+                return
 
-        # This field is used for form validation. 
-        # I am assuming that if this function will be called only when sub category is required.
-        st.session_state["is_sub_cat_req"] = True
-        
-        input_category = st.session_state.get("input_category")
-        if not input_category:
-            # st.error("Category not selected.")
-            return
+            # This field is used for form validation. 
+            # I am assuming that if this function will be called only when sub category is required.
+            st.session_state["is_sub_cat_req"] = True
+            
+            input_category = st.session_state.get("input_category")
+            if not input_category:
+                # st.error("Category not selected.")
+                return
 
-        filtered_subcategories = []
-        if input_category != None and input_category.has_programs:
-            filtered_subcategories = subcategory_repo.get_by_category_and_gender(
-                                                input_category.category_id, 
-                                                volunteer.gender,
-                                                volunteer.volunteer_category)
-        else:
-            filtered_subcategories = subcategory_repo.get_by_category_id_for_vol_cat(
-                                        input_category.category_id, 
-                                        volunteer.volunteer_category)
+            filtered_subcategories = []
+            if input_category != None and input_category.has_programs:
+                filtered_subcategories = subcategory_repo.get_by_category_and_gender(
+                                                    input_category.category_id, 
+                                                    volunteer.gender,
+                                                    volunteer.volunteer_category)
+            else:
+                filtered_subcategories = subcategory_repo.get_by_category_id_for_vol_cat(
+                                            input_category.category_id, 
+                                            volunteer.volunteer_category)
 
-        subcategory_options = {subcategory.name: subcategory for subcategory in filtered_subcategories}
-        subcategory_names = list(subcategory_options.keys())
+            subcategory_options = {subcategory.name: subcategory for subcategory in filtered_subcategories}
+            subcategory_names = list(subcategory_options.keys())
 
-        if not subcategory_names:
-            # No subcategories
-            options = ["No applicable values to select"]
-            index = 0
-            disabled = True
-            placeholder = None
+            if not subcategory_names:
+                # No subcategories
+                options = ["No applicable values to select"]
+                index = 0
+                disabled = True
+                placeholder = None
 
-            st.warning("⚠️ The selected category is inapplicable to you, kindly change it. ")
-            return        
+                st.warning("⚠️ The selected category is inapplicable to you, kindly change it. ")
+                return        
 
-        elif len(subcategory_names) == 1:
-            # Only one subcategory - preselect it
-            options = subcategory_names
-            index = 0
-            disabled = False
-            placeholder = None
+            elif len(subcategory_names) == 1:
+                # Only one subcategory - preselect it
+                options = subcategory_names
+                index = 0
+                disabled = False
+                placeholder = None
 
-        else:
-            # Multiple subcategories - ask user to select
-            options = subcategory_names
-            index = None
-            disabled = False
-            placeholder = "Select Sub Category"
+            else:
+                # Multiple subcategories - ask user to select
+                options = subcategory_names
+                index = None
+                disabled = False
+                placeholder = "Select Sub Category"
 
-    with col:
-        required_label("📌 Sub Category")
-        input_subcategory_name = st.selectbox(
-            ".",
-            options,
-            index=index,
-            key="input_subcategory_name",
-            label_visibility="collapsed",
-            disabled=disabled,
-            placeholder=placeholder
-        )
+        with col:
+            required_label("📌 Sub Category")
+            input_subcategory_name = st.selectbox(
+                ".",
+                options,
+                index=index,
+                key="input_subcategory_name",
+                label_visibility="collapsed",
+                disabled=disabled,
+                placeholder=placeholder
+            )
 
-        if (input_subcategory_name is not None) and (input_subcategory_name in subcategory_options):
-            input_subcategory = subcategory_options[input_subcategory_name]
-            st.session_state["input_subcategory"] = input_subcategory
+            if (input_subcategory_name is not None) and (input_subcategory_name in subcategory_options):
+                input_subcategory = subcategory_options[input_subcategory_name]
+                st.session_state["input_subcategory"] = input_subcategory
 
-            return input_subcategory.help_text
+                return input_subcategory.help_text
 
-        st.session_state.pop("input_subcategory", None)
-        st.session_state.pop("input_subcategory_name", None)
+            st.session_state.pop("input_subcategory", None)
+            st.session_state.pop("input_subcategory_name", None)
 
-    return None
+        return None
+    except Exception as e: 
+            handle_exception(e, "app.py - show_subcategory_selection()")
 
 # def render_dynamic_dropdowns(sub_cat: SubCategory) -> None:
 #     dynamic_dropdowns = []
@@ -539,291 +492,297 @@ def show_subcategory_selection(col) -> None:
 #             cur_col = col1 if cur_col != col1 else col2
 
 def show_acco_other_details_textbox():
+    try:
+        acco_other_details_type = st.session_state.get("acco_other_details_type")
 
-    acco_other_details_type = st.session_state.get("acco_other_details_type")
+        if not acco_other_details_type or acco_other_details_type == "Select":
+            return
 
-    if not acco_other_details_type or acco_other_details_type == "Select":
+        # Dynamic textbox session-state name
+        textbox_key = f"input_{acco_other_details_type.lower().replace(' ', '_')}_desc"
+        textbox_req = f"is_{acco_other_details_type.lower().replace(' ', '_')}_req"
+
+        required_label(f"{acco_other_details_type} Details :")
+        description = st.text_input(
+            ".",
+            placeholder=f"Provide details about the {acco_other_details_type.lower().replace(' ', '_')} (e.g. number, etc.)",
+            key=textbox_key,
+            label_visibility="collapsed"
+        )
+        st.session_state.pop("input_shower_desc", None)
+        st.session_state.pop("input_toilet_desc", None)
+        st.session_state.pop("input_drying_lines_desc", None)
+        st.session_state.pop("input_corridor_desc", None)
+        st.session_state.pop("request_files", [])
+        st.session_state.pop("input_other_desc", None)
+        st.session_state["is_shower_req"] = False
+        st.session_state["is_toilet_req"] = False
+        st.session_state["is_drying_lines_req"] = False
+        st.session_state["is_corridor_req"] = False
+        st.session_state["is_other_req"] = False
+        st.session_state[textbox_key] = description
+        st.session_state[textbox_req] = True
         return
-
-    # Dynamic textbox session-state name
-    textbox_key = f"input_{acco_other_details_type.lower().replace(' ', '_')}_desc"
-    textbox_req = f"is_{acco_other_details_type.lower().replace(' ', '_')}_req"
-
-    required_label(f"{acco_other_details_type} Details :")
-    description = st.text_input(
-        ".",
-        placeholder=f"Provide details about the {acco_other_details_type.lower().replace(' ', '_')} (e.g. number, etc.)",
-        key=textbox_key,
-        label_visibility="collapsed"
-    )
-    st.session_state.pop("input_shower_desc", None)
-    st.session_state.pop("input_toilet_desc", None)
-    st.session_state.pop("input_drying_lines_desc", None)
-    st.session_state.pop("input_corridor_desc", None)
-    st.session_state.pop("request_files", [])
-    st.session_state.pop("input_other_desc", None)
-    st.session_state["is_shower_req"] = False
-    st.session_state["is_toilet_req"] = False
-    st.session_state["is_drying_lines_req"] = False
-    st.session_state["is_corridor_req"] = False
-    st.session_state["is_other_req"] = False
-    st.session_state[textbox_key] = description
-    st.session_state[textbox_req] = True
-    return
+    except Exception as e: 
+            handle_exception(e, "app.py - show_acco_other_details_textbox()")
+    
 
 def show_accomodation_fields() -> None:
     """Render the accomodation fields."""
     # This field is used for form validation. 
     # I am assuming that if this function will be called only when accomodation fields is required.
-    st.session_state["is_stay_area_req"] = True
-    st.session_state["is_room_req"] = True
-    st.session_state["is_floor_num_req"] = True
-    st.session_state["is_acco_maintenance_type_req"] = True
-    st.session_state["is_bunk_req"] = True
-    st.session_state["is_issue_date_req"] = True
-    input_subcategory_id = st.session_state.get("input_subcategory").subcategory_id if st.session_state.get("input_subcategory", None) is not None else None
-    col1, col2 = st.columns(2)
-    with col1:
+    try:
+        st.session_state["is_stay_area_req"] = True
+        st.session_state["is_room_req"] = True
+        st.session_state["is_floor_num_req"] = True
+        st.session_state["is_acco_maintenance_type_req"] = True
+        st.session_state["is_bunk_req"] = True
+        st.session_state["is_issue_date_req"] = True
+        input_subcategory_id = st.session_state.get("input_subcategory").subcategory_id if st.session_state.get("input_subcategory", None) is not None else None
+        col1, col2 = st.columns(2)
+        with col1:
 
-        # Stay Area
-        stay_area_na = StayArea(
-            stay_area_id = "N/A",
-            stay_area_name = "N/A",
-            is_active = True
-        )
-            
-        stay_areas = [ stay_area_na ]
-        stay_areas.extend(stay_area_repo.get_active_stay_areas())
-            
-        stay_areas_options = {stay_area.stay_area_name: stay_area for stay_area in stay_areas}
-            
-        required_label("Stay Area")
-        input_stay_area_name = st.selectbox(
-            ".", # ** No longer relevant
-            list(stay_areas_options.keys()),
-            index=None,
-            key="input_stay_area_name",
-            label_visibility="collapsed",
-            placeholder="Select Stay Area",
-        )
-        st.caption("Please select 'N/A' if stay area is not applicable.")
-            
-        input_stay_area = None
-        if (input_stay_area_name is not None) and (input_stay_area_name in stay_areas_options):
-            input_stay_area = stay_areas_options[input_stay_area_name]
-            st.session_state["input_stay_area"] = input_stay_area
-        else:
-            st.session_state.pop("input_stay_area", None)
-            st.session_state.pop("input_stay_area_name", None)
-
-        if(input_subcategory_id == setting_repo.get_by_key("ACCO_MAINTENANCE_SUBCAT_ID_LTV").value or input_subcategory_id == setting_repo.get_by_key("ACCO_MAINTENANCE_SUBCAT_ID_STV").value or input_subcategory_id == setting_repo.get_by_key("ACCO_MAINTENANCE_SUBCAT_ID_AV").value):
-            # Accommodation Maintenance Type
-            acco_maintenance_type_na = AccommodationMaintenanceType(
-            acco_maintenance_type_id = "N/A",
-            acco_maintenance_type_name = "N/A",
-            is_active = True
+            # Stay Area
+            stay_area_na = StayArea(
+                stay_area_id = "N/A",
+                stay_area_name = "N/A",
+                is_active = True
             )
-
-            acco_maintenance_types = [acco_maintenance_type_na]
-            acco_maintenance_types.extend(acco_maintenance_type_repo.get_active_acco_maintenance_types())
-
-            acco_maintenance_types_options = {maintenance_type.acco_maintenance_type_name: maintenance_type for maintenance_type in acco_maintenance_types}
-
-            required_label("Accommodation Maintenance Type")
-            input_acco_maintenance_type_name = st.selectbox(
-            ".", # ** No longer relevant
-            list(acco_maintenance_types_options.keys()),
-            index=None,
-            key="input_acco_maintenance_type_name",
-            label_visibility="collapsed",
-            placeholder="Select Accommodation Maintenance Type",
+                
+            stay_areas = [ stay_area_na ]
+            stay_areas.extend(stay_area_repo.get_active_stay_areas())
+                
+            stay_areas_options = {stay_area.stay_area_name: stay_area for stay_area in stay_areas}
+            
+            required_label("Stay Area")
+            input_stay_area_name = st.selectbox(
+                ".", # ** No longer relevant
+                list(stay_areas_options.keys()),
+                index=None,
+                key="input_stay_area_name",
+                label_visibility="collapsed",
+                placeholder="Select Stay Area",
             )
-            st.caption("Please select 'N/A' if accommodation maintenance type is not applicable.")
+            st.caption("Please select 'N/A' if stay area is not applicable.")
+                
+            input_stay_area = None
+            if (input_stay_area_name is not None) and (input_stay_area_name in stay_areas_options):
+                input_stay_area = stay_areas_options[input_stay_area_name]
+                st.session_state["input_stay_area"] = input_stay_area
+            else:
+                st.session_state.pop("input_stay_area", None)
+                st.session_state.pop("input_stay_area_name", None)
 
-            input_acco_maintenance_type = None
-            if (input_acco_maintenance_type_name is not None) and (input_acco_maintenance_type_name in acco_maintenance_types_options):
-                input_acco_maintenance_type = acco_maintenance_types_options[input_acco_maintenance_type_name]
-                st.session_state["input_acco_maintenance_type"] = input_acco_maintenance_type
+            if(input_subcategory_id == setting_repo.get_by_key("ACCO_MAINTENANCE_SUBCAT_ID_LTV").value or input_subcategory_id == setting_repo.get_by_key("ACCO_MAINTENANCE_SUBCAT_ID_STV").value or input_subcategory_id == setting_repo.get_by_key("ACCO_MAINTENANCE_SUBCAT_ID_AV").value):
+                # Accommodation Maintenance Type
+                acco_maintenance_type_na = AccommodationMaintenanceType(
+                acco_maintenance_type_id = "N/A",
+                acco_maintenance_type_name = "N/A",
+                is_active = True
+                )
+
+                acco_maintenance_types = [acco_maintenance_type_na]
+                acco_maintenance_types.extend(acco_maintenance_type_repo.get_active_acco_maintenance_types())
+
+                acco_maintenance_types_options = {maintenance_type.acco_maintenance_type_name: maintenance_type for maintenance_type in acco_maintenance_types}
+
+                required_label("Accommodation Maintenance Type")
+                input_acco_maintenance_type_name = st.selectbox(
+                ".", # ** No longer relevant
+                list(acco_maintenance_types_options.keys()),
+                index=None,
+                key="input_acco_maintenance_type_name",
+                label_visibility="collapsed",
+                placeholder="Select Accommodation Maintenance Type",
+                )
+                st.caption("Please select 'N/A' if accommodation maintenance type is not applicable.")
+
+                input_acco_maintenance_type = None
+                if (input_acco_maintenance_type_name is not None) and (input_acco_maintenance_type_name in acco_maintenance_types_options):
+                    input_acco_maintenance_type = acco_maintenance_types_options[input_acco_maintenance_type_name]
+                    st.session_state["input_acco_maintenance_type"] = input_acco_maintenance_type
+                else:
+                    st.session_state.pop("input_acco_maintenance_type", None)
+                    st.session_state.pop("input_acco_maintenance_type_name", None)
             else:
                 st.session_state.pop("input_acco_maintenance_type", None)
                 st.session_state.pop("input_acco_maintenance_type_name", None)
-        else:
-            st.session_state.pop("input_acco_maintenance_type", None)
-            st.session_state.pop("input_acco_maintenance_type_name", None)
-            st.session_state.pop("is_acco_maintenance_type_req", None)
+                st.session_state.pop("is_acco_maintenance_type_req", None)
+
+            
+            #Other Details
+            required_label("Select Other Details")
+            acco_other_details_ddl = st.selectbox(".",
+            ["Select", "Shower", "Toilet", "Drying lines", "Corridor", "Other"],
+            key="acco_other_details_ddl",
+            label_visibility="collapsed"
+            )
+
+            st.session_state["acco_other_details_type"] = acco_other_details_ddl
+            show_acco_other_details_textbox()
+
+
+            # Date & Time of Issue
+            # Current IST time
+            current_datetime_ist = datetime.now(IST)
+
+            # Remove timezone only for Streamlit datetime_input
+            current_datetime = current_datetime_ist.replace(tzinfo=None)
+
+            required_label("📅 Date & Time of Issue :")
+
+            issue_date = st.datetime_input(
+                ".",
+                value=current_datetime,
+                format="DD/MM/YYYY",
+                max_value=current_datetime,
+                key="issue_date",
+                label_visibility="collapsed",
+            )
+
+            # The value selected in the widget is intended to be IST
+            issue_date = issue_date.replace(tzinfo=IST)
+            issue_date_str = issue_date.strftime("%d/%m/%Y %H:%M")
+
+            if issue_date:
+                st.session_state["input_issue_date"] = issue_date_str
+            else:    
+                st.session_state.pop("input_issue_date", None)        
 
         
-        #Other Details
-        required_label("Select Other Details")
-        acco_other_details_ddl = st.selectbox(".",
-        ["Select", "Shower", "Toilet", "Drying lines", "Corridor", "Other"],
-        key="acco_other_details_ddl",
-        label_visibility="collapsed"
-        )
+        with col2:
 
-        st.session_state["acco_other_details_type"] = acco_other_details_ddl
-        show_acco_other_details_textbox()
-
-
-        # Date & Time of Issue
-        # Current IST time
-        current_datetime_ist = datetime.now(IST)
-
-        # Remove timezone only for Streamlit datetime_input
-        current_datetime = current_datetime_ist.replace(tzinfo=None)
-
-        required_label("📅 Date & Time of Issue :")
-
-        issue_date = st.datetime_input(
-            ".",
-            value=current_datetime,
-            format="DD/MM/YYYY",
-            max_value=current_datetime,
-            key="issue_date",
-            label_visibility="collapsed",
-        )
-
-        # The value selected in the widget is intended to be IST
-        issue_date = issue_date.replace(tzinfo=IST)
-        issue_date_str = issue_date.strftime("%d/%m/%Y %H:%M")
-
-        if issue_date:
-            st.session_state["input_issue_date"] = issue_date_str
-        else:    
-            st.session_state.pop("input_issue_date", None)        
-
-     
-    with col2:
-
-        # Floor Number
-        floor_num_na = FloorNum(
-                floor_id = "N/A",
-                floor_num = "N/A",
+            # Floor Number
+            floor_num_na = FloorNum(
+                    floor_id = "N/A",
+                    floor_num = "N/A",
+                    is_active = True
+                )
+            
+            floor_nums = [ floor_num_na ]
+            floor_nums.extend(floor_num_repo.get_active_floor_nums())
+            
+            floor_nums_options = {floor_num.floor_num: floor_num for floor_num in floor_nums}
+            
+            required_label("Floor Number")
+            input_floor_num_name = st.selectbox(
+                ".", # ** No longer relevant
+                list(floor_nums_options.keys()),
+                index=None,
+                key="input_floor_num_name",
+                label_visibility="collapsed",
+                placeholder="Select Floor Number",
+            )
+            st.caption("Please select 'N/A' if floor number is not applicable.")
+            
+            if (input_floor_num_name is not None) and (input_floor_num_name in floor_nums_options):
+                    input_floor_num = floor_nums_options[input_floor_num_name]
+                    st.session_state["input_floor_num"] = input_floor_num
+            else:
+                    st.session_state.pop("input_floor_num", None)
+                    st.session_state.pop("input_floor_num_name", None)
+            
+            # Rooms
+            
+            room_na = Room(
+                room_id = "N/A",
+                stay_area_id = "N/A",
+                room_num = "N/A",
                 is_active = True
             )
-        
-        floor_nums = [ floor_num_na ]
-        floor_nums.extend(floor_num_repo.get_active_floor_nums())
-        
-        floor_nums_options = {floor_num.floor_num: floor_num for floor_num in floor_nums}
-        
-        required_label("Floor Number")
-        input_floor_num_name = st.selectbox(
-            ".", # ** No longer relevant
-            list(floor_nums_options.keys()),
-            index=None,
-            key="input_floor_num_name",
-            label_visibility="collapsed",
-            placeholder="Select Floor Number",
-        )
-        st.caption("Please select 'N/A' if floor number is not applicable.")
-        
-        if (input_floor_num_name is not None) and (input_floor_num_name in floor_nums_options):
-                input_floor_num = floor_nums_options[input_floor_num_name]
-                st.session_state["input_floor_num"] = input_floor_num
-        else:
-                st.session_state.pop("input_floor_num", None)
-                st.session_state.pop("input_floor_num_name", None)
-        
-        # Rooms
-        
-        room_na = Room(
-            room_id = "N/A",
-            stay_area_id = "N/A",
-            room_num = "N/A",
-            is_active = True
-        )
-        
-        rooms = [ room_na ]
-        rooms.extend(room_repo.get_active_rooms(input_stay_area))
-        
-        rooms_options = {room.room_num: room for room in rooms}
-        
-        required_label("Room")
-        input_room_name = st.selectbox(
-            ".", # ** No longer relevant
-            list(rooms_options.keys()),
-            index=None,
-            key="input_room_name",
-            label_visibility="collapsed",
-            placeholder="Select Room",
-        )
-        st.caption("Please select 'N/A' if room is not applicable.")
-
-        input_room = None
-        if (input_room_name is not None) and (input_room_name in rooms_options):
-            input_room = rooms_options[input_room_name]
-            st.session_state["input_room"] = input_room
-        else:
-            st.session_state.pop("input_room", None)
-            st.session_state.pop("input_room_name", None)
             
-        
-        # Bunks
+            rooms = [ room_na ]
+            rooms.extend(room_repo.get_active_rooms(input_stay_area))
+            
+            rooms_options = {room.room_num: room for room in rooms}
+            
+            required_label("Room")
+            input_room_name = st.selectbox(
+                ".", # ** No longer relevant
+                list(rooms_options.keys()),
+                index=None,
+                key="input_room_name",
+                label_visibility="collapsed",
+                placeholder="Select Room",
+            )
+            st.caption("Please select 'N/A' if room is not applicable.")
 
-        bunk_na = BunkNumber(
-            bunk_id = "N/A",
-            stay_area_id = "N/A",
-            room_id = "N/A",
-            bunk_num = "N/A",
-            is_active = True
-        )
+            input_room = None
+            if (input_room_name is not None) and (input_room_name in rooms_options):
+                input_room = rooms_options[input_room_name]
+                st.session_state["input_room"] = input_room
+            else:
+                st.session_state.pop("input_room", None)
+                st.session_state.pop("input_room_name", None)
+                
+            
+            # Bunks
 
-        bunks = [ bunk_na ]
-        bunks.extend(bunk_num_repo.get_active_bunks(input_room))
+            bunk_na = BunkNumber(
+                bunk_id = "N/A",
+                stay_area_id = "N/A",
+                room_id = "N/A",
+                bunk_num = "N/A",
+                is_active = True
+            )
 
-        bunks_options = {bunk.bunk_num: bunk for bunk in bunks}
-        
-        required_label("Bunks")
-        input_bunk_name = st.selectbox(
-            ".", # ** No longer relevant
-            list(bunks_options.keys()),
-            index=None,
-            key="input_bunk_name",
-            label_visibility="collapsed",
-            placeholder="Select Bunk",
-        )
-        st.caption("Please select 'N/A' if bunk is not applicable.")
+            bunks = [ bunk_na ]
+            bunks.extend(bunk_num_repo.get_active_bunks(input_room))
 
-        if (input_bunk_name is not None) and (input_bunk_name in bunks_options):
-            input_bunk = bunks_options[input_bunk_name]
-            st.session_state["input_bunk"] = input_bunk
-        else:
-            st.session_state.pop("input_bunk", None)
-            st.session_state.pop("input_bunk_name", None)
+            bunks_options = {bunk.bunk_num: bunk for bunk in bunks}
+            
+            required_label("Bunks")
+            input_bunk_name = st.selectbox(
+                ".", # ** No longer relevant
+                list(bunks_options.keys()),
+                index=None,
+                key="input_bunk_name",
+                label_visibility="collapsed",
+                placeholder="Select Bunk",
+            )
+            st.caption("Please select 'N/A' if bunk is not applicable.")
+
+            if (input_bunk_name is not None) and (input_bunk_name in bunks_options):
+                input_bunk = bunks_options[input_bunk_name]
+                st.session_state["input_bunk"] = input_bunk
+            else:
+                st.session_state.pop("input_bunk", None)
+                st.session_state.pop("input_bunk_name", None)
 
 
-        # # Bathrooms
+            # # Bathrooms
 
-        # bathroom_na = Bathroom(
-        #     bathroom_id = "N/A",
-        #     stay_area_id = "N/A",
-        #     bathroom_num = "N/A",
-        #     is_active = True
-        # )
+            # bathroom_na = Bathroom(
+            #     bathroom_id = "N/A",
+            #     stay_area_id = "N/A",
+            #     bathroom_num = "N/A",
+            #     is_active = True
+            # )
 
-        # bathrooms = [ bathroom_na ]
-        # bathrooms.extend(bathroom_repo.get_active_bathrooms(input_stay_area))
+            # bathrooms = [ bathroom_na ]
+            # bathrooms.extend(bathroom_repo.get_active_bathrooms(input_stay_area))
 
-        # bathrooms_options = {bathroom.bathroom_num: bathroom for bathroom in bathrooms}
+            # bathrooms_options = {bathroom.bathroom_num: bathroom for bathroom in bathrooms}
 
-        # required_label("Bathrooms")
-        # input_bathroom_name = st.selectbox(
-        #     ".", # ** No longer relevant
-        #     list(bathrooms_options.keys()),
-        #     index=None,
-        #     key="input_bathroom_name",
-        #     label_visibility="collapsed",
-        #     placeholder="Select Bathroom",
-        # )
-        # st.caption("Please select 'N/A' if bathroom is not applicable.")
+            # required_label("Bathrooms")
+            # input_bathroom_name = st.selectbox(
+            #     ".", # ** No longer relevant
+            #     list(bathrooms_options.keys()),
+            #     index=None,
+            #     key="input_bathroom_name",
+            #     label_visibility="collapsed",
+            #     placeholder="Select Bathroom",
+            # )
+            # st.caption("Please select 'N/A' if bathroom is not applicable.")
 
-        # if (input_bathroom_name is not None) and (input_bathroom_name in bathrooms_options):
-        #     input_bathroom = bathrooms_options[input_bathroom_name]
-        #     st.session_state["input_bathroom"] = input_bathroom
-        # else:
-        #     st.session_state.pop("input_bathroom", None)
-        #     st.session_state.pop("input_bathroom_name", None)
+            # if (input_bathroom_name is not None) and (input_bathroom_name in bathrooms_options):
+            #     input_bathroom = bathrooms_options[input_bathroom_name]
+            #     st.session_state["input_bathroom"] = input_bathroom
+            # else:
+            #     st.session_state.pop("input_bathroom", None)
+            #     st.session_state.pop("input_bathroom_name", None)
+    except Exception as e: 
+                handle_exception(e, "app.py - show_accomodation_fields()")
         
 
 # def show_program_selection() -> None:
@@ -869,149 +828,164 @@ def show_accomodation_fields() -> None:
 
 def show_program_dates_selection() -> None:
     """Render the program dates selection flow."""
-    input_subcategory = st.session_state.get("input_subcategory")
-    if not input_subcategory:
-        # st.error("Program not selected.")
-        return
+    try:
+        volunteer = st.session_state.get("volunteer")
+        input_subcategory = st.session_state.get("input_subcategory")
+        if not input_subcategory:
+            # st.error("Program not selected.")
+            return
 
-    # This field is used for form validation. 
-    # I am assuming that if this function will be called only when program date is required.
-    st.session_state["is_program_date_req"] = True
+        # This field is used for form validation. 
+        # I am assuming that if this function will be called only when program date is required.
+        st.session_state["is_program_date_req"] = True
 
-    # Assuming you have a method to get program dates based on the selected program
-    program_dates = subcategory_repo.get_program_dates_in_range(
-                        input_subcategory.subcategory_id, 
-                        volunteer.departure_date)
+        # Assuming you have a method to get program dates based on the selected program
+        program_dates = subcategory_repo.get_program_dates_in_range(
+                            input_subcategory.subcategory_id, 
+                            volunteer.departure_date)
 
-    info = setting_repo.get_by_key("PROGRAM_DATES_INFO_MSG")
-    if info and not info.value.isspace():
-        st.info(f"ℹ️ {info.value}")
+        info = setting_repo.get_by_key("PROGRAM_DATES_INFO_MSG")
+        if info and not info.value.isspace():
+            st.info(f"ℹ️ {info.value}")
 
-    if not program_dates:
-        #st.warning("No dates available for the selected program.")
-        st.warning("Active program dates are beyond your departure date. Please select a different program or raise stay extension request.")
-        return
+        if not program_dates:
+            #st.warning("No dates available for the selected program.")
+            st.warning("Active program dates are beyond your departure date. Please select a different program or raise stay extension request.")
+            return
+        
+        required_label("📅 Select Program Date")
+        input_date = st.selectbox(
+            ".",
+            program_dates,
+            index = None,
+            key = "input_date",
+            label_visibility = "collapsed",
+            placeholder = "Select Program Date"
+        )
 
-    required_label("📅 Select Program Date")
-    input_date = st.selectbox(
-        ".",
-        program_dates,
-        index = None,
-        key = "input_date",
-        label_visibility = "collapsed",
-        placeholder = "Select Program Date"
-    )
+        if input_date is not None:
+            st.session_state["input_program_date"] = input_date
+            return
 
-    if input_date is not None:
-        st.session_state["input_program_date"] = input_date
-        return
-
-    st.session_state.pop("input_date", None)
-    st.session_state.pop("input_program_date", None)
+        st.session_state.pop("input_date", None)
+        st.session_state.pop("input_program_date", None)
+    except Exception as e: 
+                    handle_exception(e, "app.py - show_program_dates_selection()")
 
 def show_custom_date_fields(subcategory: SubCategory) -> None:
     """Render the from date fields, conditionally."""
-    if not subcategory.show_from_date_input and not subcategory.show_to_date_input:
-        return
+    try:
+        if not subcategory.show_from_date_input and not subcategory.show_to_date_input:
+            return
 
-    from_date, to_date = None, None
-    col1, col2 = st.columns(2)
-    to_date_value = None
-    max_date_value = date.today() + timedelta(days=90)
+        from_date, to_date = None, None
+        col1, col2 = st.columns(2)
+        to_date_value = None
+        max_date_value = date.today() + timedelta(days=90)
+        
+        with col1:
+            if subcategory.show_from_date_input:
+                st.session_state["is_from_date_req"] = True
 
-    with col1:
-        if subcategory.show_from_date_input:
-            st.session_state["is_from_date_req"] = True
+                required_label("📅 From Date")
+                from_date = st.date_input(".", format="DD/MM/YYYY", key="from_date",
+                                        label_visibility="collapsed",
+                                        max_value=max_date_value,
+                                        min_value=date.today(),)
 
-            required_label("📅 From Date")
-            from_date = st.date_input(".", format="DD/MM/YYYY", key="from_date",
-                                      label_visibility="collapsed",
-                                      max_value=max_date_value,
-                                      min_value=date.today(),)
+                to_date_value = None
 
-            to_date_value = None
+            if from_date is not None:
+                duration = subcategory.duration_in_days or 1
+                days_to_add = max(duration - 1, 1)
+                to_date_value = from_date + timedelta(days=days_to_add)
 
-        if from_date is not None:
-            duration = subcategory.duration_in_days or 1
-            days_to_add = max(duration - 1, 1)
-            to_date_value = from_date + timedelta(days=days_to_add)
+        with (col1 if not subcategory.show_from_date_input else col2): # both columns should be used only when both date fields need to be shown
+            if subcategory.show_to_date_input:
+                st.session_state["is_to_date_req"] = True
 
-    with (col1 if not subcategory.show_from_date_input else col2): # both columns should be used only when both date fields need to be shown
-        if subcategory.show_to_date_input:
-            st.session_state["is_to_date_req"] = True
+                required_label("📅 To Date")
+                to_date = st.date_input(".", value = to_date_value, format="DD/MM/YYYY", key="to_date",
+                                        label_visibility="collapsed",
+                                        max_value=max_date_value)
 
-            required_label("📅 To Date")
-            to_date = st.date_input(".", value = to_date_value, format="DD/MM/YYYY", key="to_date",
-                                    label_visibility="collapsed",
-                                    max_value=max_date_value)
+        if from_date:
+            st.session_state["input_from_date"] = from_date
+        else:
+            st.session_state.pop("from_date", None)
+            st.session_state.pop("input_from_date", None)
 
-    if from_date:
-        st.session_state["input_from_date"] = from_date
-    else:
-        st.session_state.pop("from_date", None)
-        st.session_state.pop("input_from_date", None)
-
-    if to_date:
-        st.session_state["input_to_date"] = to_date
-    else:
-        st.session_state.pop("to_date", None)
-        st.session_state.pop("input_to_date", None)
+        if to_date:
+            st.session_state["input_to_date"] = to_date
+        else:
+            st.session_state.pop("to_date", None)
+            st.session_state.pop("input_to_date", None)
+    except Exception as e: 
+            handle_exception(e, "app.py - show_custom_date_fields()")
 
 def show_coordinator_email_input() -> None:
     """Render the coordinator email input, validate and store in session state."""
 
     # This field is used for form validation. 
     # I am assuming that if this function will be called only when coordinator email is required.
-    st.session_state["is_coordinator_email_req"] = True
+    try:
+        st.session_state["is_coordinator_email_req"] = True
 
-    required_label("📧 Karma Sadhana Coordinator Mail ID")
-    coordinator_email = st.text_input(
-        ".",
-        placeholder="Enter your Karma Sadhana Coordinator Mail ID",
-        value=st.session_state.get("coordinator_email", ""),
-        key="coordinator_email",
-        label_visibility="collapsed",
-    )
+        required_label("📧 Karma Sadhana Coordinator Mail ID")
+        coordinator_email = st.text_input(
+            ".",
+            placeholder="Enter your Karma Sadhana Coordinator Mail ID",
+            value=st.session_state.get("coordinator_email", ""),
+            key="coordinator_email",
+            label_visibility="collapsed",
+        )
 
-    if coordinator_email is not None and coordinator_email != "":
-        normalized = utils.normalize_email(coordinator_email)
+        if coordinator_email is not None and coordinator_email != "":
+            normalized = utils.normalize_email(coordinator_email)
+            
+            # Simple email validation: non-empty local part, an @, and a domain with a dot
+            email_regex = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+            if normalized is None or not email_regex.match(normalized):
+                st.error("Please enter a valid coordinator email address.")
+            else:
+                st.session_state["input_coordinator_email"] = normalized    
+                return
 
-        # Simple email validation: non-empty local part, an @, and a domain with a dot
-        email_regex = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
-        if normalized is None or not email_regex.match(normalized):
-            st.error("Please enter a valid coordinator email address.")
-        else:
-            st.session_state["input_coordinator_email"] = normalized    
-            return
+        st.session_state.pop("coordinator_email", None)
+        st.session_state.pop("input_coordinator_email", None)
 
-    st.session_state.pop("coordinator_email", None)
-    st.session_state.pop("input_coordinator_email", None)
+    except Exception as e: 
+        handle_exception(e, "app.py - show_coordinator_email_input()")
 
 def show_health_related_bool() -> None:
     """Render the health-related Yes/No input and store the value in session state."""
 
     # This field is required for form validation.
-    st.session_state["is_health_related_bool_req"] = True
+    try:
+        st.session_state["is_health_related_bool_req"] = True
 
-    required_label("🩺 Is it health related?")
-    health_related = st.radio(
-        "",
-        options=["Yes, health related", "No, not health related"],
-        index=1,
-        key="health_related",
-        label_visibility="collapsed",
-    )
+        required_label("🩺 Is it health related?")
+        health_related = st.radio(
+            "",
+            options=["Yes, health related", "No, not health related"],
+            index=1,
+            key="health_related",
+            label_visibility="collapsed",
+        )
 
-    # No selection yet
-    if health_related is None:
-        st.session_state.pop("input_health_related", None)
-        return
+        # No selection yet
+        if health_related is None:
+            st.session_state.pop("input_health_related", None)
+            return
+        # Store as an actual boolean
+        if health_related == "Yes, health related" :
+            st.session_state["input_health_related"] = True
+        else:
+            st.session_state["input_health_related"] = False
 
-    # Store as an actual boolean
-    if health_related == "Yes, health related" :
-        st.session_state["input_health_related"] = True
-    else:
-        st.session_state["input_health_related"] = False
+    except Exception as e: 
+        handle_exception(e, "app.py - show_health_related_bool()")
+
 
 def show_description_box() -> None:
     """Render the description box."""
@@ -1020,51 +994,55 @@ def show_description_box() -> None:
     #     k: v for k, v in st.session_state.items()
     #     if "description" in k.lower()
     # })
+    try:
+        required_label("📝 Reason for your request")
+        description = st.text_area(
+            ".",
+            placeholder="Please fill in with as much detail as possible",
+            height=150,
+            key="description",
+            label_visibility="collapsed",
+        )
 
-    required_label("📝 Reason for your request")
-    description = st.text_area(
-        ".",
-        placeholder="Please fill in with as much detail as possible",
-        height=150,
-        key="description",
-        label_visibility="collapsed",
-    )
-
-    if description:
-        st.session_state["input_description"] = description
-        return
-
-    st.session_state.pop("description", None)
-    st.session_state.pop("input_description", None)
+        if description:
+            st.session_state["input_description"] = description
+            return
+        
+        st.session_state.pop("description", None)
+        st.session_state.pop("input_description", None)
+    except Exception as e: 
+            handle_exception(e, "app.py - show_description_box()")
 
 def show_upload_photo() -> None:
     """Render the file upload option."""
-
-    if "file_uploader_key" not in st.session_state:
-        st.session_state.file_uploader_key = 0
-    st.markdown("**Upload supporting documents**")
-    st.caption("JPG, PNG or PDF • Maximum total size: 20 MB")
-    st.markdown(
-    """
-    <style>
-    [data-testid="stFileUploaderDropzoneInstructions"] {
-        display: none;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-    st.file_uploader(
-        " ",
-        type=["jpg", "jpeg", "png", "pdf"],
-        accept_multiple_files=True,
-        key=f"request_files_{st.session_state.file_uploader_key}",
-        label_visibility="collapsed",
+    try:
+        if "file_uploader_key" not in st.session_state:
+            st.session_state.file_uploader_key = 0
+        st.markdown("**Upload supporting documents**")
+        st.caption("JPG, PNG or PDF • Maximum total size: 20 MB")
+        st.markdown(
+        """
+        <style>
+        [data-testid="stFileUploaderDropzoneInstructions"] {
+            display: none;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
     )
+        st.file_uploader(
+            " ",
+            type=["jpg", "jpeg", "png", "pdf"],
+            accept_multiple_files=True,
+            key=f"request_files_{st.session_state.file_uploader_key}",
+            label_visibility="collapsed",
+        )
+    except Exception as e: 
+            handle_exception(e, "app.py - show_upload_photo()")
 
 def show_submit_button():
     """Render the submit button"""
-
+    
     submit = st.button(
             "Submit Request",
             key="submit"
@@ -1080,7 +1058,7 @@ def show_submit_button():
             st.session_state.get("input_category", ""), 
             "⚠️ Please select a Request Type.")
     )
-
+    
     is_sub_cat_req = st.session_state.get("is_sub_cat_req", False)
     if is_sub_cat_req:
         validation_results.append(
@@ -1357,27 +1335,7 @@ def show_submit_button():
     except Exception as e:
         # Remove loader even if something fails
         loader.empty()
-        logger.exception(
-                            "Failed to save request record",
-                            extra={
-                                "ip_address": utils.get_client_ip(),
-                                "vol_email_id": volunteer.email_id if volunteer else "",
-                                "vol_phone_num": volunteer.phone_number if volunteer else "",
-                            }
-                        )
-        try:
-            # Send exception email
-            EmailService().send_exception_email(e, "Failed to save request record")
-        except Exception:
-            logger.exception(
-                                "Failed to send exception notification email",
-                                extra={
-                                        "ip_address": utils.get_client_ip(),
-                                        "vol_email_id": volunteer.email_id if volunteer else "",
-                                        "vol_phone_num": volunteer.phone_number if volunteer else "",
-                                       }
-                            )
-        raise
+        handle_exception(e, "app.py - show_submit_button()")
 
 def show_help_text(help_text: str) -> None:
     """Render the help text."""
@@ -1451,7 +1409,6 @@ def save_record():
             is_health_related = st.session_state["input_health_related"]
 
         team_id = subcategory.team_id
-
     # if program is not None:
     #     if program.show_from_date_input:
     #         from_date = st.session_state["input_from_date"]
@@ -1555,7 +1512,7 @@ def save_record():
             f"You selected {total_size / (1024 * 1024):.2f} MB."
         )
         return 
-    #raise Exception("Something went wrong")
+    
     if uploaded_files:
         try:
             drive_folder_id = st.secrets["drive"]["photo_folder_id"]
@@ -1831,6 +1788,42 @@ def show_success_popup(request_id,coordinator_email_required):
 
 if __name__ == "__main__":
     try:
+        setup_logger()
+
+        st.set_page_config(
+            page_title="VSP Panda",
+            layout="wide"
+        )
+
+
+        # bathroom_repo = BathroomRepository()
+        bunk_num_repo = BunkNumRepository()
+        category_repo = CategoryRepository()
+        floor_num_repo = FloorNumRepository()
+        setting_repo = SettingRepository()
+        parameter_repo = ParameterRepository()
+        room_repo = RoomRepository()
+        setting_repo = SettingRepository()
+        shower_repo = ShowerRepository()
+        stay_area_repo = StayAreaRepository ()
+        acco_maintenance_type_repo = AccoMaintenanceTypeRepository()
+        subcategory_repo = SubCategoryRepository()
+        vol_cat_repo = VolunteerCategoryRepository()
+        volunteer_repo = VolunteerRepository()
+        StayExtensionCatIdFromTable = utils.get_setting("StayExtensionCatIdFromTable")
+
+
+        if "volunteer_identified" in st.session_state and st.session_state["volunteer_identified"]:
+            st.session_state["state"] = "Form"
+
+            # These fields are requried for validating the form
+            # Initializing the states, actual values would be put while the fields are rendered
+            st.session_state["is_sub_cat_req"] = False
+            st.session_state["is_program_selection"] = False
+            st.session_state["is_program_date_req"] = False
+            st.session_state["is_coordinator_email_req"] = False
+        elif "state" not in st.session_state or not st.session_state["state"]:
+            st.session_state["state"] = "Identification"
         st.title("🔹 Raise a Request")
     
         reset_req_flags()
@@ -1904,49 +1897,6 @@ if __name__ == "__main__":
 
                 if req:
                     show_success_popup(req.request_id,input_subcategory.show_coordinator_email_input)
-
-                # send emails
-                # if req:
-                #     send_mail_requester(req)
-                #     send_mail_team(req)
-                #     if input_subcategory != None and input_subcategory.secondary_email:
-                #         send_mail_secondary_email(req, input_subcategory.secondary_email)
-
-                #     send_mail_coordinator(req)
-    except Exception as e: 
-        # Log the error
-        volunteer = st.session_state.get("volunteer")
-        logger.exception(
-                    "Failed while processing request",
-                    extra={
-                        "ip_address": utils.get_client_ip(),
-                        "vol_email_id": volunteer.email_id if volunteer else "",
-                        "vol_phone_num": volunteer.phone_number if volunteer else "",
-                    }
-                )
-        try:
-            # Send exception email
-            EmailService().send_exception_email(e, "Failed while processing request")
-        except Exception:
-            logger.exception(
-                                "Failed to send exception notification email",
-                                extra={
-                                    "ip_address": utils.get_client_ip(),
-                                    "vol_email_id": volunteer.email_id if volunteer else "",
-                                    "vol_phone_num": volunteer.phone_number if volunteer else "",
-                                }
-                            )
-        
-        # log_repo = LogRepository()
-
-        # now: datetime = datetime.now()
-        # log: Log = Log(
-        #     log_id = f"L-{now.strftime("%y%m%d-%H%M%S")}",
-        #     ip_address = utils.get_client_ip(),
-        #     email_id = volunteer.email_id if volunteer else "",
-        #     phone_number = volunteer.phone_number if volunteer else "",
-        #     message = f"An error occurred. Error: {str(e)}",
-        #     exception = traceback.format_exc(),
-        #     timestamp = now
-        # )
-        # log_repo.write_to_sheet(log)
+    except Exception as e:
+        # Remove loader even if something fails
+        handle_exception(e, "app.py - __main__ func")
