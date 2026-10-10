@@ -51,6 +51,10 @@ def setup_logger():
 def handle_exception(e: Exception, context: str = "Application"):
     """Log full technical details but show a safe message to the user."""
 
+    st.error(
+            "Something went wrong while processing your request. "
+            "Please refresh the page and try again."
+        )
     # Log the error
     volunteer = st.session_state.get("volunteer")
     logger.exception(
@@ -79,10 +83,7 @@ def handle_exception(e: Exception, context: str = "Application"):
                             }
                         )
 
-    st.error(
-        "Something went wrong while processing your request. "
-        "Please refresh the page and try again."
-    )
+    
 
 
 def load_css() -> None:
