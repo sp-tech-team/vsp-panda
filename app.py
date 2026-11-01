@@ -874,41 +874,66 @@ def show_program_dates_selection() -> None:
                     handle_exception(e, "app.py - show_program_dates_selection()")
 
 def show_custom_date_fields(subcategory: SubCategory) -> None:
-    """Render the from date fields, conditionally."""
+    """Render the from/to date fields, conditionally."""
     try:
         if not subcategory.show_from_date_input and not subcategory.show_to_date_input:
             return
 
         from_date, to_date = None, None
         col1, col2 = st.columns(2)
-        to_date_value = None
-        max_date_value = date.today() + timedelta(days=90)
-        
+
+        today = date.today()
+        max_date_value = today + timedelta(days=90)
+
         with col1:
             if subcategory.show_from_date_input:
                 st.session_state["is_from_date_req"] = True
 
                 required_label("📅 From Date")
-                from_date = st.date_input(".", format="DD/MM/YYYY", key="from_date",
-                                        label_visibility="collapsed",
-                                        max_value=max_date_value,
-                                        min_value=date.today(),)
+                from_date = st.date_input(
+                    ".",
+                    format="DD/MM/YYYY",
+                    key="from_date",
+                    label_visibility="collapsed",
+                    min_value=today,
+                    max_value=max_date_value,
+                )
 
-                to_date_value = None
+        # Lower bound for the To Date: never before From Date (or today)
+        to_min_value = from_date if from_date else today
 
-            if from_date is not None:
-                duration = subcategory.duration_in_days or 1
-                days_to_add = max(duration - 1, 1)
-                to_date_value = from_date + timedelta(days=days_to_add)
+        # Default for the To Date: From Date + duration, clamped into [min, max]
+        to_date_value = to_min_value
+        if from_date is not None:
+            duration = subcategory.duration_in_days or 1
+            days_to_add = max(duration - 1, 1)
+            to_date_value = from_date + timedelta(days=days_to_add)
+        to_date_value = max(to_min_value, min(to_date_value, max_date_value))
 
-        with (col1 if not subcategory.show_from_date_input else col2): # both columns should be used only when both date fields need to be shown
+        with (col1 if not subcategory.show_from_date_input else col2):  # both columns only when both date fields are shown
             if subcategory.show_to_date_input:
                 st.session_state["is_to_date_req"] = True
 
                 required_label("📅 To Date")
-                to_date = st.date_input(".", value = to_date_value, format="DD/MM/YYYY", key="to_date",
-                                        label_visibility="collapsed",
-                                        max_value=max_date_value)
+
+                to_date_kwargs = dict(
+                    format="DD/MM/YYYY",
+                    key="to_date",
+                    label_visibility="collapsed",
+                    min_value=to_min_value,
+                    max_value=max_date_value,
+                )
+
+                if "to_date" in st.session_state:
+                    # Stale value may now be outside the allowed range
+                    # (e.g. the user moved From Date forward), so clamp it.
+                    # Don't pass `value` as well, as the key already holds it.
+                    current = st.session_state["to_date"]
+                    st.session_state["to_date"] = max(to_min_value, min(current, max_date_value))
+                else:
+                    to_date_kwargs["value"] = to_date_value
+
+                to_date = st.date_input(".", **to_date_kwargs)
 
         if from_date:
             st.session_state["input_from_date"] = from_date
@@ -921,8 +946,8 @@ def show_custom_date_fields(subcategory: SubCategory) -> None:
         else:
             st.session_state.pop("to_date", None)
             st.session_state.pop("input_to_date", None)
-    except Exception as e: 
-            handle_exception(e, "app.py - show_custom_date_fields()")
+    except Exception as e:
+        handle_exception(e, "app.py - show_custom_date_fields()")
 
 def show_coordinator_email_input() -> None:
     """Render the coordinator email input, validate and store in session state."""
