@@ -176,7 +176,7 @@ class Request:
     upload_file_link: str | None = None
 
     def __str__(self) -> str:
-        return f"{self.request_id} - {self.request_type} | {self.name} <{self.email_id}> <{self.phone_number}>"
+        return f"{self.request_id}  | {self.name} <{self.email_id}> <{self.phone_number}>"
 
 @dataclass
 class Room:
