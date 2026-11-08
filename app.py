@@ -873,6 +873,7 @@ def show_program_dates_selection() -> None:
     except Exception as e: 
                     handle_exception(e, "app.py - show_program_dates_selection()")
 
+
 def show_custom_date_fields(subcategory: SubCategory) -> None:
     """Render the from/to date fields, conditionally."""
     try:
@@ -890,6 +891,7 @@ def show_custom_date_fields(subcategory: SubCategory) -> None:
                 st.session_state["is_from_date_req"] = True
 
                 required_label("📅 From Date")
+
                 from_date = st.date_input(
                     ".",
                     format="DD/MM/YYYY",
@@ -899,18 +901,24 @@ def show_custom_date_fields(subcategory: SubCategory) -> None:
                     max_value=max_date_value,
                 )
 
-        # Lower bound for the To Date: never before From Date (or today)
+        # Lower bound for To Date: From Date or today
         to_min_value = from_date if from_date else today
 
-        # Default for the To Date: From Date + duration, clamped into [min, max]
+        # Calculate default To Date based on duration
         to_date_value = to_min_value
+
         if from_date is not None:
             duration = subcategory.duration_in_days or 1
             days_to_add = max(duration - 1, 1)
             to_date_value = from_date + timedelta(days=days_to_add)
-        to_date_value = max(to_min_value, min(to_date_value, max_date_value))
 
-        with (col1 if not subcategory.show_from_date_input else col2):  # both columns only when both date fields are shown
+        # Keep default To Date within allowed range
+        to_date_value = max(
+            to_min_value,
+            min(to_date_value, max_date_value)
+        )
+
+        with (col1 if not subcategory.show_from_date_input else col2):
             if subcategory.show_to_date_input:
                 st.session_state["is_to_date_req"] = True
 
@@ -925,27 +933,39 @@ def show_custom_date_fields(subcategory: SubCategory) -> None:
                 )
 
                 if "to_date" in st.session_state:
-                    # Stale value may now be outside the allowed range
-                    # (e.g. the user moved From Date forward), so clamp it.
-                    # Don't pass `value` as well, as the key already holds it.
-                    current = st.session_state["to_date"]
-                    st.session_state["to_date"] = max(to_min_value, min(current, max_date_value))
+                    current = st.session_state.get("to_date")
+
+                    # Handle None or unexpected session-state values
+                    if not isinstance(current, date):
+                        current = to_date_value
+
+                    # Clamp existing To Date within allowed range
+                    current = max(
+                        to_min_value,
+                        min(current, max_date_value)
+                    )
+
+                    st.session_state["to_date"] = current
+
                 else:
                     to_date_kwargs["value"] = to_date_value
 
                 to_date = st.date_input(".", **to_date_kwargs)
 
+        # Store selected From Date
         if from_date:
             st.session_state["input_from_date"] = from_date
         else:
             st.session_state.pop("from_date", None)
             st.session_state.pop("input_from_date", None)
 
+        # Store selected To Date
         if to_date:
             st.session_state["input_to_date"] = to_date
         else:
             st.session_state.pop("to_date", None)
             st.session_state.pop("input_to_date", None)
+
     except Exception as e:
         handle_exception(e, "app.py - show_custom_date_fields()")
 
